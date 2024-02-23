@@ -1,0 +1,19 @@
+# Screen Dimensions
+WIDTH, HEIGHT = 1000, 750
+CENTRE_X = WIDTH / 2
+CENTRE_Y = HEIGHT / 2
+
+MUTE = False
+VOLUME = 25
+MUSIC_TRACK = 1
+
+FPS = 144
+
+# COLOURS
+YELLOW = '#ffd500'
+LIGHT_YELLOW = '#fff700'
+LIGHT_GREY = '#d4d4d4'
+WHITE = '#ffffff'
+BLACK = '#000000'
+RED = '#ff0000'
+GREEN = '#0ac900'
