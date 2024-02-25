@@ -7,9 +7,12 @@ from constants import *
 # PYGAME SETUP
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption('Flappy Taco')
-pygame.display.set_icon(pygame.image.load('images/icon/icon.ico').convert_alpha())
 clock = pygame.time.Clock()
+
+pygame.display.set_caption('Flappy Taco')
+pygame.display.set_icon(pygame.image.load('images/icon.ico').convert_alpha())
+screen.blit(pygame.transform.scale(pygame.image.load('images/cover.png').convert_alpha(), (WIDTH, HEIGHT)), (0, 0))
+pygame.display.update()
 
 # Fonts
 main_font = pygame.font.Font('fonts/slkscrb.ttf', size = 50)
