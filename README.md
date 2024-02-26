@@ -1,6 +1,6 @@
 ==== FLAPPY TACO ====
 
-Its Flappy Bird - with a tasty twist!
+Its Flappy Bird... with a tasty twist...
 
 - [LEFT MOUSE BUTTON] to jump upwards
 - Jump through the Forks to progress
@@ -8,3 +8,5 @@ Its Flappy Bird - with a tasty twist!
 - Choose which taco you play as from the menu
 
 Most importantly - have fun!
+
+_Built on Python using the PyGame module._
