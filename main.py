@@ -317,6 +317,7 @@ class Player(pygame.sprite.Sprite):
 
 		with open('saves/saves.txt', 'r') as saves: self.image_index = int(saves.readlines()[1].split('=')[1].strip('\n'))
 		self.image = self.images[self.image_index]
+		self.mask = pygame.mask.from_surface(self.images[0])
 
 		self.rect = self.images[0].get_rect(center = (CENTRE_X - 200, CENTRE_Y))
 		self.pos = pygame.math.Vector2(self.rect.center)
@@ -359,6 +360,7 @@ class Player(pygame.sprite.Sprite):
 
 		self.pos = (CENTRE_X - 200, CENTRE_Y)
 		self.image = self.images[self.image_index]
+		self.mask = pygame.mask.from_surface(self.images[0])
 		self.rect = self.images[0].get_rect(center = self.pos)
 		self.chilli_energy = self.MAX_CHILLI_ENERGY
 		self.y_vel = 0
@@ -367,10 +369,12 @@ class Player(pygame.sprite.Sprite):
 
 	def check_death(self) -> None:
 
-		if pygame.sprite.spritecollide(self, self.game.forks, False): 
+		if pygame.sprite.spritecollide(self, self.game.forks, False, pygame.sprite.collide_rect):
+
+			if pygame.sprite.spritecollide(self, self.game.forks, False, pygame.sprite.collide_mask): 
 			
-			self.death_cause = 'crashed into a Fork'
-			self.game.handle_game_over()
+				self.death_cause = 'crashed into a Fork'
+				self.game.handle_game_over()
 
 		if self.pos.y <= 0 + (self.image.get_height() / 2) or self.pos.y >= HEIGHT - (self.image.get_height() / 2): 
 			
@@ -402,15 +406,7 @@ class Player(pygame.sprite.Sprite):
 		self.rect = self.image.get_rect(center = (CENTRE_X, CENTRE_Y))
 
 	def costume_name(self) -> str:
-
-		if self.image_index == 0: return 'Taco'
-		if self.image_index == 1: return 'Wizard Taco'
-		if self.image_index == 2: return 'MLG Taco'
-		if self.image_index == 3: return 'Skateboarder Taco'
-		if self.image_index == 4: return 'Savage Taco'
-		if self.image_index == 5: return 'Gamer Taco'
-		if self.image_index == 6: return 'Holy Taco'
-		if self.image_index == 7: return 'Red Hot Devil Taco'
+		return ['Taco', 'Wizard Taco', 'MLG Taco', 'Skateboarder Taco', 'Savage Taco', 'Gamer Taco', 'Holy Taco', 'Red Hot Devil Taco'][self.image_index]
 
 class Fork(pygame.sprite.Sprite):
 
