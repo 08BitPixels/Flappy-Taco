@@ -1,7 +1,9 @@
 import pygame
+
 from random import randint
 from time import time
 from sys import exit
+
 from constants import *
 
 # PYGAME SETUP
