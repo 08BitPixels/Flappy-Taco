@@ -1,2 +1,2 @@
-highscore=35
+highscore=38
 costume=4
