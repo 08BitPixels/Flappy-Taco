@@ -315,7 +315,7 @@ class Player(pygame.sprite.Sprite):
 
 		super().__init__()
 
-		self.images = [pygame.transform.scale_by(pygame.image.load(f'images/player/taco{i}.png').convert_alpha(), 0.4) for i in range(7)]
+		self.images = [pygame.transform.scale_by(pygame.image.load(f'images/player/taco{i}.png').convert_alpha(), 0.3) for i in range(7)]
 
 		with open('saves/saves.txt', 'r') as saves: self.image_index = int(saves.readlines()[1].split('=')[1].strip('\n'))
 		self.image = self.images[self.image_index]
@@ -328,10 +328,10 @@ class Player(pygame.sprite.Sprite):
 		self.jump_sfx.set_volume(2)
 
 		self.game = game
-		self.GRAVITY = 4000
+		self.GRAVITY = 3000
 		self.MAX_CHILLI_ENERGY = 1000
 		self.JUMP_COST = 25
-		self.JUMP_BOOST = 1000
+		self.JUMP_BOOST = 750
 		self.y_vel = 0
 		self.chilli_energy = self.MAX_CHILLI_ENERGY
 		self.death_cause = ''
