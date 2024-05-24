@@ -1,5 +1,5 @@
 # Screen Dimensions
-WIDTH, HEIGHT = 1000, 750
+WIDTH, HEIGHT = 1500, 750
 CENTRE_X = WIDTH / 2
 CENTRE_Y = HEIGHT / 2
 

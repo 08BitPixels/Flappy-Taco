@@ -30,6 +30,10 @@ class Game:
 		self.score = 0
 		with open('saves/saves.txt', 'r') as saves: self.high_score = int(saves.readlines()[0].split('=')[1].strip('\n'))
 
+		# Fork Settings
+		self.fork_speed = 700
+		self.fork_count = 5
+
 		self.text = Text(self)
 		self.player = pygame.sprite.GroupSingle(Player(self))
 		self.forks = pygame.sprite.Group()
@@ -64,7 +68,7 @@ class Game:
 
 		# Timers
 		self.CHILLI_FREQUENCY = 1
-		self.FORK_FREQUENCY = 1250
+		self.FORK_FREQUENCY = 500
 		self.fork_timer = pygame.USEREVENT + 1
 		pygame.time.set_timer(self.fork_timer, self.FORK_FREQUENCY)
 
@@ -96,6 +100,19 @@ class Game:
 
 		self.death_sfx.play()
 		self.state = 'over'
+
+	def add_forks(self) -> None:
+
+		for i in range(self.fork_count):
+
+			y_offset = randint(int(HEIGHT / 3), int(HEIGHT - HEIGHT / 3))
+
+			self.forks.add(
+				Fork(orientation = 'up', speed = self.fork_speed, offset = y_offset, game = self), 
+				Fork(orientation = 'down', speed = self.fork_speed, offset = y_offset, game = self)
+			)
+
+			if randint(0, self.CHILLI_FREQUENCY) == 0: self.chillies.add(Chilli(speed = self.fork_speed, y_offset = y_offset, game = self))
 
 	def point(self) -> None:
 
@@ -734,7 +751,7 @@ def main():
 	game_over_sprites = game.game_over_sprites
 	pause_sprites = game.pause_sprites
 
-	print(f'Game loaded in {round(time() - start_time, 3)} seconds.')
+	print(f'Loaded in {round(time() - start_time, 3)}s')
 
 	previous_time = time()
 	while True:
@@ -766,11 +783,11 @@ def main():
 						y_offset = randint(int(HEIGHT / 3), int(HEIGHT - HEIGHT / 3))
 
 						forks.add(
-							Fork(orientation = 'up', speed = 300, offset = y_offset, game = game), 
-							Fork(orientation = 'down', speed = 300, offset = y_offset, game = game)
+							Fork(orientation = 'up', speed = game.fork_speed, offset = y_offset, game = game), 
+							Fork(orientation = 'down', speed = game.fork_speed, offset = y_offset, game = game)
 						)
 
-						if randint(0, game.CHILLI_FREQUENCY) == 0: chillies.add(Chilli(speed = 300, y_offset = y_offset, game = game))
+						if randint(0, game.CHILLI_FREQUENCY) == 0: chillies.add(Chilli(speed = game.fork_speed, y_offset = y_offset, game = game))
 
 		# Background
 		background.draw(screen)
