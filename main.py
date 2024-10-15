@@ -2,9 +2,17 @@ import pygame
 
 from random import randint
 from time import time
-from sys import exit
+from sys import exit, _MEIPASS
+from os import path
 
 from constants import *
+
+def resource_path(relative_path: str) -> str:
+
+    try: base_path = _MEIPASS
+    except Exception: base_path = path.abspath(".")
+
+    return path.join(base_path, relative_path)
 
 # PYGAME SETUP
 pygame.init()
@@ -12,13 +20,13 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
 pygame.display.set_caption('Flappy Taco')
-pygame.display.set_icon(pygame.image.load('images/icon.ico').convert_alpha())
-screen.blit(pygame.transform.scale(pygame.image.load('images/cover.png').convert_alpha(), (WIDTH, HEIGHT)), (0, 0))
+pygame.display.set_icon(pygame.image.load(resource_path('images/icon.ico')).convert_alpha())
+screen.blit(pygame.transform.scale(pygame.image.load(resource_path('images/cover.png')).convert_alpha(), (WIDTH, HEIGHT)), (0, 0))
 pygame.display.update()
 
 # Fonts
-main_font = pygame.font.Font('fonts/slkscrb.ttf', size = 50)
-secondary_font = pygame.font.Font('fonts/slkscr.ttf', size = 30)
+main_font = pygame.font.Font(resource_path('fonts/slkscrb.ttf'), size = 50)
+secondary_font = pygame.font.Font(resource_path('fonts/slkscr.ttf'), size = 30)
 
 class Game:
 
@@ -28,7 +36,7 @@ class Game:
 		self.started = False
 		self.paused = False
 		self.score = 0
-		with open('saves/saves.txt', 'r') as saves: self.high_score = int(saves.readlines()[0].split('=')[1].strip('\n'))
+		with open(resource_path('saves/saves.txt'), 'r') as saves: self.high_score = int(saves.readlines()[0].split('=')[1].strip('\n'))
 
 		# Fork Settings
 		self.fork_speed = 700
@@ -73,12 +81,12 @@ class Game:
 		pygame.time.set_timer(self.fork_timer, self.FORK_FREQUENCY)
 
 		# Music
-		self.music = pygame.mixer.Sound('audio/music/arcade-music.mp3' if MUSIC_TRACK == 0 else 'audio/music/raining-tacos.mp3' if MUSIC_TRACK == 1 else 'audio/music/arcade-music2.mp3')
+		self.music = pygame.mixer.Sound(resource_path('audio/music/arcade-music.mp3') if MUSIC_TRACK == 0 else resource_path('audio/music/raining-tacos.mp3') if MUSIC_TRACK == 1 else resource_path('audio/music/arcade-music2.mp3'))
 		self.music.set_volume(0 if MUTE else VOLUME / 100)
 		self.music.play(loops = -1)
 
 		# SFX
-		self.death_sfx = pygame.mixer.Sound('audio/sfx/player/death.mp3')
+		self.death_sfx = pygame.mixer.Sound(resource_path('audio/sfx/player/death.mp3'))
 		self.death_sfx.set_volume(1)
 
 	def chilli_collected(self) -> None:
@@ -124,7 +132,7 @@ class Game:
 			self.save()
 
 	def save(self) -> None:
-		with open('saves/saves.txt', 'w') as saves: saves.writelines(f'highscore={self.high_score}\ncostume={int(self.player.sprite.image_index)}')
+		with open(resource_path('saves/saves.txt'), 'w') as saves: saves.writelines(f'highscore={self.high_score}\ncostume={int(self.player.sprite.image_index)}')
 
 class Text:
 
@@ -142,21 +150,21 @@ class Text:
 		self.fps_text2_rect = None
 
 		# Menu Screen
-		self.menu_txt1 = pygame.image.load('images/text/flappy.png').convert_alpha()
+		self.menu_txt1 = pygame.image.load(resource_path('images/text/flappy.png')).convert_alpha()
 		self.menu_txt1 = pygame.transform.scale_by(self.menu_txt1, 0.25)
 		self.menu_txt1_rect = self.menu_txt1.get_rect(topleft = (100, 100))
 
-		self.menu_txt2 = pygame.image.load('images/text/taco!.png').convert_alpha()
+		self.menu_txt2 = pygame.image.load(resource_path('images/text/taco!.png')).convert_alpha()
 		self.menu_txt2 = pygame.transform.scale_by(self.menu_txt2, 0.4)
 		self.menu_txt2_rect = self.menu_txt2.get_rect(center = (CENTRE_X, CENTRE_Y - 50))
 
 		# Control Screen
-		self.control_txt1 = pygame.image.load('images/text/help.png').convert_alpha()
+		self.control_txt1 = pygame.image.load(resource_path('images/text/help.png')).convert_alpha()
 		self.control_txt1 = pygame.transform.scale(self.control_txt1, (WIDTH, HEIGHT))
 		self.control_txt1_rect = self.control_txt1.get_rect(center = (CENTRE_X, CENTRE_Y))
 
 		# Game Over Screen
-		self.over_txt1 = pygame.image.load('images/text/game-over.png').convert_alpha()
+		self.over_txt1 = pygame.image.load(resource_path('images/text/game-over.png')).convert_alpha()
 		self.over_txt1 = pygame.transform.scale_by(self.over_txt1, 0.25)
 		self.over_txt1_rect = self.over_txt1.get_rect(center = (CENTRE_X, CENTRE_Y - 150))
 
@@ -170,10 +178,10 @@ class Text:
 		self.over_txt4_rect = None
 
 		# Play Screen
-		self.play_txt1 = main_font.render('Click to Begin', False, LIGHT_YELLOW)
+		self.play_txt1 = main_font.render(resource_path('Click to Begin'), False, LIGHT_YELLOW)
 		self.play_txt1_rect = self.play_txt1.get_rect(center = (CENTRE_X, CENTRE_Y - 100))
 
-		self.play_txt2 = pygame.image.load('images/text/paused.png').convert_alpha()
+		self.play_txt2 = pygame.image.load(resource_path('images/text/paused.png')).convert_alpha()
 		self.play_txt2 = pygame.transform.scale_by(self.play_txt2, 0.3)
 		self.play_txt2_rect = self.play_txt2.get_rect(center = (CENTRE_X, CENTRE_Y - 120))
 
@@ -196,7 +204,7 @@ class Text:
 		self.chilli_energy_txt_rect = None
 
 		# Choose Taco Screen
-		self.choose_taco_txt1 = pygame.image.load('images/text/choose-costume.png').convert_alpha()
+		self.choose_taco_txt1 = pygame.image.load(resource_path('images/text/choose-costume.png')).convert_alpha()
 		self.choose_taco_txt1 = pygame.transform.scale_by(self.choose_taco_txt1, 0.3)
 		self.choose_taco_txt1_rect = self.choose_taco_txt1.get_rect(center = (CENTRE_X, 75))
 
@@ -332,16 +340,16 @@ class Player(pygame.sprite.Sprite):
 
 		super().__init__()
 
-		self.images = [pygame.transform.scale_by(pygame.image.load(f'images/player/taco{i}.png').convert_alpha(), 0.3) for i in range(7)]
+		self.images = [pygame.transform.scale_by(pygame.image.load(resource_path(f'images/player/taco{i}.png')).convert_alpha(), 0.3) for i in range(7)]
 
-		with open('saves/saves.txt', 'r') as saves: self.image_index = int(saves.readlines()[1].split('=')[1].strip('\n'))
+		with open(resource_path('saves/saves.txt'), 'r') as saves: self.image_index = int(saves.readlines()[1].split('=')[1].strip('\n'))
 		self.image = self.images[self.image_index]
 		self.mask = pygame.mask.from_surface(self.images[0])
 
 		self.rect = self.images[0].get_rect(center = (CENTRE_X - 200, CENTRE_Y))
 		self.pos = pygame.math.Vector2(self.rect.center)
 
-		self.jump_sfx = pygame.mixer.Sound('audio/sfx/player/jump.wav')
+		self.jump_sfx = pygame.mixer.Sound(resource_path('audio/sfx/player/jump.wav'))
 		self.jump_sfx.set_volume(2)
 
 		self.game = game
@@ -433,7 +441,7 @@ class Fork(pygame.sprite.Sprite):
 
 		super().__init__()
 
-		self.image = pygame.image.load('images/fork/fork.png').convert_alpha()
+		self.image = pygame.image.load(resource_path('images/fork/fork.png')).convert_alpha()
 		self.image = pygame.transform.scale_by(self.image, 1.5)
 
 		if orientation == 'up':
@@ -476,7 +484,7 @@ class Chilli(pygame.sprite.Sprite):
 
 		super().__init__()
 
-		self.chilli = pygame.image.load('images/chilli/chilli.png').convert_alpha()
+		self.chilli = pygame.image.load(resource_path('images/chilli/chilli.png')).convert_alpha()
 		self.chilli = pygame.transform.scale_by(self.chilli, 1.25)
 		self.collect = main_font.render('+100', False, LIGHT_YELLOW, BLACK)
 
@@ -484,7 +492,7 @@ class Chilli(pygame.sprite.Sprite):
 		self.rect = self.image.get_rect(center = (WIDTH + 50, y_offset))
 		self.pos = pygame.math.Vector2(self.rect.center)
 
-		self.collect_sfx = pygame.mixer.Sound('audio/sfx/chilli/chilli-collect.mp3')
+		self.collect_sfx = pygame.mixer.Sound(resource_path('audio/sfx/chilli/chilli-collect.mp3'))
 		self.collect_sfx.set_volume(5)
 
 		self.game = game
@@ -518,7 +526,7 @@ class Background(pygame.sprite.Sprite):
 
 		super().__init__()
 
-		self.image = pygame.image.load('images/background/stars.png').convert_alpha()
+		self.image = pygame.image.load(resource_path('images/background/stars.png')).convert_alpha()
 		self.image = pygame.transform.scale(self.image, (WIDTH, HEIGHT))
 		self.rect = self.image.get_rect(center = (x_pos, CENTRE_Y))
 		self.pos = pygame.math.Vector2(self.rect.center)
@@ -541,11 +549,11 @@ class Button(pygame.sprite.Sprite):
 
 		super().__init__()
 
-		self.default = pygame.image.load(f'images/button/{type}/{type}.png').convert_alpha()
+		self.default = pygame.image.load(resource_path(f'images/button/{type}/{type}.png')).convert_alpha()
 
 		if animation_type == 'slide':
 
-			self.select = pygame.image.load(f'images/button/{type}/{type}-select.png').convert_alpha()
+			self.select = pygame.image.load(resource_path(f'images/button/{type}/{type}-select.png')).convert_alpha()
 			self.frames = [self.default, self.select]
 			self.state = 0
 			self.image = self.frames[self.state]
@@ -558,7 +566,7 @@ class Button(pygame.sprite.Sprite):
 		self.rect = self.image.get_rect(center = pos)
 		self.pos = pygame.math.Vector2(self.rect.center)
 
-		self.click_sfx = pygame.mixer.Sound('audio/sfx/button/click.wav')
+		self.click_sfx = pygame.mixer.Sound(resource_path('audio/sfx/button/click.wav'))
 		self.click_sfx.set_volume(0.25)
 
 		self.game = game
@@ -661,7 +669,7 @@ class Intro_Sprite(pygame.sprite.Sprite):
 		
 		if type == 'rays':
 
-			self.og_image = pygame.image.load('images/intro-sprite/god-rays.png').convert_alpha()
+			self.og_image = pygame.image.load(resource_path('images/intro-sprite/god-rays.png')).convert_alpha()
 			self.og_image = pygame.transform.scale_by(self.og_image, 0.75).convert_alpha()
 			self.image = self.og_image
 			self.rect = self.image.get_rect(center = pos)
@@ -716,7 +724,7 @@ class Menu_Background(pygame.sprite.Sprite):
 
 		super().__init__()
 
-		self.image = pygame.image.load('images/game-over-menu/game-over-menu.png').convert_alpha()
+		self.image = pygame.image.load(resource_path('images/game-over-menu/game-over-menu.png')).convert_alpha()
 		self.image = pygame.transform.scale_by(self.image, 0.3)
 		self.rect = self.image.get_rect(midbottom = pos)
 		self.pos = pygame.math.Vector2(self.rect.center)
