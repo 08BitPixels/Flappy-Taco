@@ -1,3 +1,5 @@
+**TO INSTALL CORRECTLY:** Go to the _Releases_ Page and download the .exe file in the latest release.
+
 ==== FLAPPY TACO ====
 
 Its Flappy Bird... with a tasty twist...
