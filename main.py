@@ -2,7 +2,8 @@ import pygame
 
 from random import randint
 from time import time
-from sys import exit, _MEIPASS
+try: from sys import exit, _MEIPASS
+except ImportError: from sys import exit
 from os import path
 
 from constants import *
@@ -39,7 +40,7 @@ class Game:
 		with open(resource_path('saves/saves.txt'), 'r') as saves: self.high_score = int(saves.readlines()[0].split('=')[1].strip('\n'))
 
 		# Fork Settings
-		self.fork_speed = 700
+		self.fork_speed = 400
 		self.fork_count = 5
 
 		self.text = Text(self)
@@ -53,7 +54,7 @@ class Game:
 		self.menu_sprites = pygame.sprite.Group(
 			Intro_Sprite(type = 'rays', pos = (CENTRE_X + 150, CENTRE_Y + 215), game = self),
 			Intro_Sprite(type = 'taco', pos = (CENTRE_X + 150, CENTRE_Y + 225), game = self),
-			Button(type = 'play', pos = (120, CENTRE_Y + 150), animation_type = 'slide', animation_offset = 25, press_state = 'play', game = self),
+			Button(type = 'play', pos = (120, CENTRE_Y + 120), animation_type = 'slide', animation_offset = 25, press_state = 'play', game = self),
 			Button(type = 'help', pos = (WIDTH - 85, HEIGHT - 100), animation_type = 'float', animation_offset = 0.2, press_state = 'controls', game = self),
 			Button(type = 'choose-taco', pos = (147, HEIGHT - 100), animation_type = 'slide', animation_offset = 25, press_state = 'choose-taco', game = self)
 		)
@@ -76,7 +77,7 @@ class Game:
 
 		# Timers
 		self.CHILLI_FREQUENCY = 1
-		self.FORK_FREQUENCY = 500
+		self.FORK_FREQUENCY = 1000
 		self.fork_timer = pygame.USEREVENT + 1
 		pygame.time.set_timer(self.fork_timer, self.FORK_FREQUENCY)
 
@@ -690,7 +691,6 @@ class Intro_Sprite(pygame.sprite.Sprite):
 	def update(self, dt: float) -> None:
 
 		if self.type == 'taco': self.animate(dt)
-		if self.type == 'rays': self.rotate(dt)
 
 	def animate(self, dt: float) -> None:
 
@@ -701,13 +701,6 @@ class Intro_Sprite(pygame.sprite.Sprite):
 		self.frame_index %= len(self.frames)
 		self.image = self.frames[int(self.frame_index)]
 		self.rect = self.image.get_rect(center = (self.pos[0], self.pos[1] - 15))
-
-	def rotate(self, dt: int | float) -> None:
-
-		self.rotation += self.rotation_speed * dt
-		self.rotation %= 360
-		if round(self.rotation % 4) == 0: self.image = pygame.transform.rotate(self.og_image, self.rotation).convert_alpha()
-		self.rect = self.image.get_rect(center = self.pos)
 
 	def reset(self) -> None:
 
@@ -798,6 +791,7 @@ def main():
 						if randint(0, game.CHILLI_FREQUENCY) == 0: chillies.add(Chilli(speed = game.fork_speed, y_offset = y_offset, game = game))
 
 		# Background
+		screen.fill(BLACK)
 		background.draw(screen)
 
 		if game.state == 'menu':

@@ -1,2 +1,2 @@
-highscore=38
-costume=4
+highscore=0
+costume=0
