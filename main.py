@@ -178,7 +178,7 @@ class Text:
 		self.over_txt4_rect = None
 
 		# Play Screen
-		self.play_txt1 = main_font.render(resource_path('Click to Begin'), False, LIGHT_YELLOW)
+		self.play_txt1 = main_font.render('Click to Begin', False, LIGHT_YELLOW)
 		self.play_txt1_rect = self.play_txt1.get_rect(center = (CENTRE_X, CENTRE_Y - 100))
 
 		self.play_txt2 = pygame.image.load(resource_path('images/text/paused.png')).convert_alpha()
