@@ -1,13 +1,11 @@
-# Screen Dimensions
+# Screen Setup
 WIDTH, HEIGHT = 1080, 720
 CENTRE_X = WIDTH / 2
 CENTRE_Y = HEIGHT / 2
-
-MUTE = False
-VOLUME = 25
-MUSIC_TRACK = 1
-
 FPS = 144
+
+# Audio
+MUSIC_VOL = 0.25
 
 # COLOURS
 YELLOW = '#ffd500'

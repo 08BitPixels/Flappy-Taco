@@ -1,2 +1,0 @@
-highscore=0
-costume=0

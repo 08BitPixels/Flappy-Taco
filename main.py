@@ -1,19 +1,23 @@
 import pygame
+import os
+import sys
 
 from random import randint
 from time import time
-try: from sys import exit, _MEIPASS
-except ImportError: from sys import exit
-from os import path
 
 from constants import *
 
 def resource_path(relative_path: str) -> str:
 
-    try: base_path = _MEIPASS
-    except Exception: base_path = path.abspath(".")
+    try: base_path = sys._MEIPASS
+    except Exception: base_path = os.path.abspath(".")
 
-    return path.join(base_path, relative_path)
+    return os.path.join(base_path, relative_path)
+
+def save_path(relative_path: str) -> str:
+
+    if getattr(sys, 'frozen', False): return os.path.join(os.getenv('APPDATA'), '08BitPixels/Flappy Taco/', relative_path)
+    else: return os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
 
 # PYGAME SETUP
 pygame.init()
@@ -37,7 +41,7 @@ class Game:
 		self.started = False
 		self.paused = False
 		self.score = 0
-		with open(resource_path('saves/saves.txt'), 'r') as saves: self.high_score = int(saves.readlines()[0].split('=')[1].strip('\n'))
+		self.load_save()
 
 		# Fork Settings
 		self.fork_speed = 400
@@ -82,8 +86,8 @@ class Game:
 		pygame.time.set_timer(self.fork_timer, self.FORK_FREQUENCY)
 
 		# Music
-		self.music = pygame.mixer.Sound(resource_path('audio/music/arcade-music.mp3') if MUSIC_TRACK == 0 else resource_path('audio/music/raining-tacos.mp3') if MUSIC_TRACK == 1 else resource_path('audio/music/arcade-music2.mp3'))
-		self.music.set_volume(0 if MUTE else VOLUME / 100)
+		self.music = pygame.mixer.Sound(resource_path('audio/music/raining-tacos.mp3'))
+		self.music.set_volume(MUSIC_VOL)
 		self.music.play(loops = -1)
 
 		# SFX
@@ -132,8 +136,24 @@ class Game:
 			self.high_score = self.score
 			self.save()
 
-	def save(self) -> None:
-		with open(resource_path('saves/saves.txt'), 'w') as saves: saves.writelines(f'highscore={self.high_score}\ncostume={int(self.player.sprite.image_index)}')
+	def save(self, high_score: int, costume_num: int) -> None:
+
+		print('Saving...')
+		with open(save_path('saves/saves.txt'), 'w') as saves: saves.writelines(f'highscore={high_score}\ncostume={costume_num}')
+		print('Saved')
+
+	def load_save(self) -> None:
+
+		if os.path.isdir(save_path('saves\\')):
+
+			with open(save_path('saves/saves.txt'), 'r') as saves: self.high_score = int(saves.readlines()[0].split('=')[1].strip('\n'))
+
+		else:
+
+			print('No save file present; creating new one...')
+			os.makedirs(save_path('saves\\'))
+			self.save(high_score = 0, costume_num = 0)
+			self.high_score = 0
 
 class Text:
 
@@ -343,7 +363,7 @@ class Player(pygame.sprite.Sprite):
 
 		self.images = [pygame.transform.scale_by(pygame.image.load(resource_path(f'images/player/taco{i}.png')).convert_alpha(), 0.3) for i in range(7)]
 
-		with open(resource_path('saves/saves.txt'), 'r') as saves: self.image_index = int(saves.readlines()[1].split('=')[1].strip('\n'))
+		with open(save_path('saves/saves.txt'), 'r') as saves: self.image_index = int(saves.readlines()[1].split('=')[1].strip('\n'))
 		self.image = self.images[self.image_index]
 		self.mask = pygame.mask.from_surface(self.images[0])
 
@@ -764,9 +784,9 @@ def main():
 
 			if event.type == pygame.QUIT:
 
-				game.save()
+				game.save(high_score = game.high_score, costume_num = player.sprite.image_index)
 				pygame.quit()
-				exit()
+				sys.exit()
 
 			if game.state == 'controls':
 				if event.type == pygame.MOUSEBUTTONDOWN: game.state = 'menu'
