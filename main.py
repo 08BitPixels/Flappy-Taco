@@ -130,11 +130,7 @@ class Game:
 	def point(self) -> None:
 
 		self.score += 1
-
-		if self.score > self.high_score:
-
-			self.high_score = self.score
-			self.save()
+		if self.score > self.high_score: self.high_score = self.score
 
 	def save(self, high_score: int, costume_num: int) -> None:
 
