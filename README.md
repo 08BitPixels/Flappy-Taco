@@ -2,7 +2,7 @@
 
 Its Flappy Bird... with a tasty twist...
 
-#### Controls
+### Controls
 - [LEFT MOUSE BUTTON] to jump upwards
 - Jump through the Forks to progress
 - Collect Chillies to refuel your Energy
