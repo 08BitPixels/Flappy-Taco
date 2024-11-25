@@ -14,19 +14,20 @@ def resource_path(relative_path: str) -> str:
 
     return os.path.join(base_path, relative_path)
 
-def save_path(relative_path: str) -> str:
-
-    if getattr(sys, 'frozen', False): return os.path.join(os.getenv('APPDATA'), '08BitPixels/Flappy Taco/', relative_path)
-    else: return os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
-
 # PYGAME SETUP
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
-pygame.display.set_caption('Flappy Taco')
+# Window Setup
 pygame.display.set_icon(pygame.image.load(resource_path('images/icon.ico')).convert_alpha())
-screen.blit(pygame.transform.scale(pygame.image.load(resource_path('images/cover.png')).convert_alpha(), (WIDTH, HEIGHT)), (0, 0))
+pygame.display.set_caption('Flappy Taco | INITIALISING...')
+screen.fill('#202020')
+
+# Splashscreen
+splashscreen = pygame.image.load(resource_path('images/splashscreen.png')).convert_alpha()
+splashscreen = pygame.transform.scale(splashscreen, splashscreen_size(img_size = splashscreen.get_size(), screen_size = (WIDTH, HEIGHT))).convert_alpha()
+screen.blit(splashscreen, splashscreen.get_rect(center = (CENTRE_X, CENTRE_Y)))
 pygame.display.update()
 
 # Fonts
@@ -92,7 +93,7 @@ class Game:
 
 		# SFX
 		self.death_sfx = pygame.mixer.Sound(resource_path('audio/sfx/player/death.mp3'))
-		self.death_sfx.set_volume(1)
+		self.death_sfx.set_volume(1 * SFX_VOL)
 
 	def chilli_collected(self) -> None:
 		self.player.sprite.chilli_energy += 200
@@ -134,20 +135,20 @@ class Game:
 
 	def save(self, high_score: int, costume_num: int) -> None:
 
-		print('Saving...')
-		with open(save_path('saves/saves.txt'), 'w') as saves: saves.writelines(f'highscore={high_score}\ncostume={costume_num}')
-		print('Saved')
+		print('\nSaving Progress...')
+		with open(save_path('saves\\saves.txt'), 'w') as saves: saves.writelines(f'highscore={high_score}\ncostume={costume_num}')
+		print('Saved\n')
 
 	def load_save(self) -> None:
 
-		if os.path.isdir(save_path('saves\\')):
+		if os.path.isfile(save_path('saves\\saves.txt')):
 
-			with open(save_path('saves/saves.txt'), 'r') as saves: self.high_score = int(saves.readlines()[0].split('=')[1].strip('\n'))
+			with open(save_path('saves\\saves.txt'), 'r') as saves: self.high_score = int(saves.readlines()[0].split('=')[1].strip('\n'))
 
 		else:
 
 			print('No save file present; creating new one...')
-			os.makedirs(save_path('saves\\'))
+			if not os.path.isdir(save_path('saves\\')): os.makedirs(save_path('saves\\'))
 			self.save(high_score = 0, costume_num = 0)
 			self.high_score = 0
 
@@ -367,7 +368,7 @@ class Player(pygame.sprite.Sprite):
 		self.pos = pygame.math.Vector2(self.rect.center)
 
 		self.jump_sfx = pygame.mixer.Sound(resource_path('audio/sfx/player/jump.wav'))
-		self.jump_sfx.set_volume(2)
+		self.jump_sfx.set_volume(2 * SFX_VOL)
 
 		self.game = game
 		self.GRAVITY = 3000
@@ -510,7 +511,7 @@ class Chilli(pygame.sprite.Sprite):
 		self.pos = pygame.math.Vector2(self.rect.center)
 
 		self.collect_sfx = pygame.mixer.Sound(resource_path('audio/sfx/chilli/chilli-collect.mp3'))
-		self.collect_sfx.set_volume(5)
+		self.collect_sfx.set_volume(5 * SFX_VOL)
 
 		self.game = game
 		self.speed = speed
@@ -584,7 +585,7 @@ class Button(pygame.sprite.Sprite):
 		self.pos = pygame.math.Vector2(self.rect.center)
 
 		self.click_sfx = pygame.mixer.Sound(resource_path('audio/sfx/button/click.wav'))
-		self.click_sfx.set_volume(0.25)
+		self.click_sfx.set_volume(0.25 * SFX_VOL)
 
 		self.game = game
 		self.type = type
@@ -769,6 +770,7 @@ def main():
 	pause_sprites = game.pause_sprites
 
 	print(f'Loaded in {round(time() - start_time, 3)}s')
+	pygame.display.set_caption('Flappy Taco')
 
 	previous_time = time()
 	while True:
@@ -780,6 +782,17 @@ def main():
 
 			if event.type == pygame.QUIT:
 
+				config = {
+
+					'SCREEN_WIDTH': WIDTH,
+					'SCREEN_HEIGHT': HEIGHT,
+					'FPS': FPS,
+
+					'MUSIC_VOL': MUSIC_VOL,
+					'SFX_VOL': SFX_VOL
+
+				}
+				save_config(config)
 				game.save(high_score = game.high_score, costume_num = player.sprite.image_index)
 				pygame.quit()
 				sys.exit()
