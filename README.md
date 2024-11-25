@@ -1,8 +1,11 @@
 # Flappy Taco
 
-Its Flappy Bird... with a tasty twist...
-
+Its Flappy Bird... with a tasty twist... <br>
 _Built on Python using the PyGame module._
+
+## How to Install Correctly
+Go to the _Releases_ Page and download the .exe file in the latest release. <br>
+_(Don't download the source code)_
 
 ## How to Play
 - `[LEFT MOUSE BUTTON]` to jump upwards
@@ -12,9 +15,8 @@ _Built on Python using the PyGame module._
 
 Most importantly - have fun!
 
-## How to Install Correctly
-Go to the _Releases_ Page and download the .exe file in the latest release.
-(DON'T download the code itself)
-
 ## Game Saves
 Where is the game save data stored? Flappy Taco stores all save data at `%appdata%/08BitPixels/Flappy Taco/saves/`.
+
+## Credits
+Thanks to ClearCode (https://www.youtube.com/@ClearCode) for teaching me how to use Pygame. He does loads of awesome Python and Pygame tutorials so if you want to learn how to use Pygame, I highly reccomend checking him out.
