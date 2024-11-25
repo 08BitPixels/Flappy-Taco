@@ -16,7 +16,17 @@ _(Don't download the source code)_
 Most importantly - have fun!
 
 ## Game Saves
-Where is the game save data stored? Flappy Taco stores all save data at `%appdata%/08BitPixels/Flappy Taco/saves/`.
+Where is the game save data stored? Flappy Taco stores all progress data at `%appdata%/08BitPixels/Flappy Taco/saves/`.
+
+## Configuration
+_* All of this info is also in the text file (`config.txt`)_ <br>
+Using config.txt (located at `%appdata%/08BitPixels/Flappy Taco/config`), you can configure;
+
+### Screen Settings
+- **Screen FPS:** Enter `0` to uncap the FPS, or you can specify a custom value.
+
+### Audio
+- **Music + SFX Volume:** A float between 0-1 `(0 = off, 1 = max)`
 
 ## Credits
 Thanks to ClearCode (https://www.youtube.com/@ClearCode) for teaching me how to use Pygame. He does loads of awesome Python and Pygame tutorials so if you want to learn how to use Pygame, I highly reccomend checking him out.
