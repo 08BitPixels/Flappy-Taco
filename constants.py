@@ -81,8 +81,8 @@ def splashscreen_size(img_size: tuple[int, int], screen_size: tuple[int, int]) -
 # Default Settings
 DEFAULT_CONFIG = {
 
-	'SCREEN_WIDTH': 1080,
-	'SCREEN_HEIGHT': 720,
+	'SCREEN_WIDTH': 1000,
+	'SCREEN_HEIGHT': 750,
 	'FPS': 60,
 
 	'MUSIC_VOL': 1.0,
