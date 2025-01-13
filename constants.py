@@ -13,6 +13,7 @@ def save_config(
 				'SCREEN_WIDTH': int | str,
 				'SCREEN_HEIGHT': int | str,
 				'FPS': int,
+				'VSYNC': int,
 
 				'MUSIC_VOL': float | int,
 				'SFX_VOL': float | int
@@ -29,16 +30,21 @@ def save_config(
 f'''# CONFIG
 
 ## Screen Setup ----
-{'\n'.join([f'{setting} = {data}' for setting, data in list(settings.items())[:3]])}
+{'\n'.join([f'{setting} = {data}' for setting, data in list(settings.items())[:4]])}
 
 ## Audio ----
-{'\n'.join([f'{setting} = {data}' for setting, data in list(settings.items())[3:]])}
+{'\n'.join([f'{setting} = {data}' for setting, data in list(settings.items())[4:]])}
 
 ----------------------------------------------------
 # CONFIG EXPLAINED
 
 ## Screen Setup ----
 FPS: number (0 = uncapped)
+VSYNC: 0 = off, 1 = on; syncs refresh rate to that of the monitor (can help to reduce screen tearing) - when this is set to 1 (on) FPS value is ignored. 
+| EXPERIMENTAL FEATURE - due to the specific requirements of VSync, it may not work; you are not garanteed to get a VSync display on your specific setup.
+| Due to this, it is reccomended that you set the FPS value to the refresh rate of your monitor anyways.
+| You will know if VSync has not worked if your FPS seems to be uncapped, even though you have set VSync to be on - in this case, just disable VSync and use the FPS value as normal.
+| ALSO if VSync is on, you will not be able to change the large-ness of the window, but you can still change the ratio (for an annoying reason)
 
 ## Audio ----
 MUSIC & SFX VOL: float between 0-1 (0 = off, 1 = max)'''
@@ -56,7 +62,7 @@ def load_config() -> dict:
 			config = {}
 			contents = config_file.readlines()
 
-			for line in contents[3:6] + contents[8:10]:
+			for line in contents[3:7] + contents[9:11]:
 
 				setting = line.split(' = ')[0].strip('\n')
 				data = line.split(' = ')[1].strip('\n')
@@ -84,6 +90,7 @@ DEFAULT_CONFIG = {
 	'SCREEN_WIDTH': 1000,
 	'SCREEN_HEIGHT': 750,
 	'FPS': 60,
+	'VSYNC': 0,
 
 	'MUSIC_VOL': 1.0,
 	'SFX_VOL': 1.0
@@ -95,6 +102,7 @@ config = load_config()
 # Screen Setup
 WIDTH, HEIGHT = config['SCREEN_WIDTH'], config['SCREEN_HEIGHT']
 FPS = config['FPS']
+VSYNC = config['VSYNC']
 
 CENTRE_X = WIDTH / 2
 CENTRE_Y = HEIGHT / 2

@@ -16,7 +16,7 @@ def resource_path(relative_path: str) -> str:
 
 # PYGAME SETUP
 pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED if VSYNC else None, vsync = VSYNC)
 clock = pygame.time.Clock()
 
 # Window Setup
@@ -231,7 +231,7 @@ class Text:
 
 	def update(self) -> None:
 
-		fps = round(clock.get_fps(), 1)
+		fps = round(clock.get_fps())
 		fps_colour = GREEN if fps > 60 else YELLOW if fps < 60 and fps > 10 else RED
 		self.fps_text2 = secondary_font.render(str(fps), False, fps_colour, BLACK)
 		self.fps_text2_rect = self.fps_text2.get_rect(topleft = (75, 0))
@@ -787,6 +787,7 @@ def main():
 					'SCREEN_WIDTH': WIDTH,
 					'SCREEN_HEIGHT': HEIGHT,
 					'FPS': FPS,
+					'VSYNC': VSYNC,
 
 					'MUSIC_VOL': MUSIC_VOL,
 					'SFX_VOL': SFX_VOL
@@ -906,6 +907,6 @@ def main():
 		[screen.blit(line[0], line[1]) for line in text.texts]
 
 		pygame.display.update()
-		clock.tick(FPS)
+		clock.tick(0 if VSYNC else FPS)
 
 main()
