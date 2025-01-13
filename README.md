@@ -20,7 +20,7 @@ Where is the game save data stored? Flappy Taco stores all progress data at `%ap
 
 ## Configuration
 _* All of this info is also in the config text file_ <br>
-Using config.txt (located at `%appdata%/08BitPixels/Flappy Taco/config/`), you can configure;
+Using config.txt (located at `%appdata%/08BitPixels/Flappy Taco/saves/`), you can configure;
 
 ### Screen Settings
 - Screen **Width** / **Height**
