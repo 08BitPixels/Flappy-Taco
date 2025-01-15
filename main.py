@@ -16,7 +16,7 @@ def resource_path(relative_path: str) -> str:
 
 # PYGAME SETUP
 pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED if VSYNC else None, vsync = VSYNC)
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED if VSYNC else 0, vsync = VSYNC)
 clock = pygame.time.Clock()
 
 # Window Setup
