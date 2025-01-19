@@ -4,7 +4,7 @@ Its Flappy Bird... with a tasty twist... <br>
 _Built on Python using the PyGame module._
 
 ## How to Install Correctly
-Go to the _Releases_ Page and download the .exe file in the latest release. <br>
+Go to the _Releases_ Page and download the .zip file in the latest release. <br>
 _(Don't download the source code)_
 
 ## How to Play
