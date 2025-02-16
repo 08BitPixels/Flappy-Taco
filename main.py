@@ -5,14 +5,13 @@ import sys
 from random import randint
 from time import time
 
-from constants import *
+from constants import splashscreen_size, save_path, save_config
+from constants import WIDTH, HEIGHT, VSYNC, CENTRE_X, CENTRE_Y, LIGHT_GREY, BLACK, LIGHT_YELLOW, GREEN, YELLOW, RED, WHITE, MUSIC_VOL, SFX_VOL, FPS
 
 def resource_path(relative_path: str) -> str:
 
-    try: base_path = sys._MEIPASS
-    except Exception: base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
+	base_path = getattr(sys, '_MEIPASS', os.path.abspath('.'))
+	return os.path.join(base_path, relative_path)
 
 # PYGAME SETUP
 pygame.init()
@@ -42,6 +41,7 @@ class Game:
 		self.started = False
 		self.paused = False
 		self.score = 0
+		self.high_score = 0
 		self.load_save()
 
 		# Fork Settings
@@ -50,8 +50,8 @@ class Game:
 
 		self.text = Text(self)
 		self.player = pygame.sprite.GroupSingle(Player(self))
-		self.forks = pygame.sprite.Group()
-		self.chillies = pygame.sprite.Group()
+		self.forks: pygame.sprite.Group = pygame.sprite.Group()
+		self.chillies: pygame.sprite.Group = pygame.sprite.Group()
 		self.background = pygame.sprite.Group(
 			Background(CENTRE_X), 
 			Background(CENTRE_X + WIDTH)
@@ -107,8 +107,8 @@ class Game:
 		self.player.sprite.reset()
 		self.forks.empty()
 		self.chillies.empty()
-		[sprite.reset() for sprite in self.game_over_sprites]
-		[sprite.reset() for sprite in self.menu_sprites]
+		[sprite.reset() for sprite in self.game_over_sprites.sprites() if hasattr(sprite, 'reset')]
+		[sprite.reset() for sprite in self.menu_sprites.sprites() if hasattr(sprite, 'reset')]
 		
 	def handle_game_over(self) -> None:
 
@@ -157,15 +157,15 @@ class Text:
 	def __init__(self, game: Game) -> None:
 
 		self.game = game
-		self.texts = []
+		self.texts: list[tuple[pygame.surface.Surface, pygame.rect.Rect]] = []
 
 		# Texts
 
 		self.fps_text1 = secondary_font.render('FPS:', False, LIGHT_GREY, BLACK)
 		self.fps_text1_rect = self.fps_text1.get_rect(topleft = (0, 0))
 
-		self.fps_text2 = None
-		self.fps_text2_rect = None
+		self.fps_text2 = pygame.surface.Surface((0, 0))
+		self.fps_text2_rect = self.fps_text2.get_rect(topleft = (0, 0))
 
 		# Menu Screen
 		self.menu_txt1 = pygame.image.load(resource_path('images/text/flappy.png')).convert_alpha()
@@ -186,14 +186,14 @@ class Text:
 		self.over_txt1 = pygame.transform.scale_by(self.over_txt1, 0.25)
 		self.over_txt1_rect = self.over_txt1.get_rect(center = (CENTRE_X, CENTRE_Y - 150))
 
-		self.over_txt2 = None
-		self.over_txt2_rect = None
+		self.over_txt2 = pygame.surface.Surface((0, 0))
+		self.over_txt2_rect = self.over_txt2.get_rect(topleft = (0, 0))
 
-		self.over_txt3 = None
-		self.over_txt3_rect = None
+		self.over_txt3 = pygame.surface.Surface((0, 0))
+		self.over_txt3_rect = self.over_txt3.get_rect(topleft = (0, 0))
 
-		self.over_txt4 = None
-		self.over_txt4_rect = None
+		self.over_txt4 = pygame.surface.Surface((0, 0))
+		self.over_txt4_rect = self.over_txt4.get_rect(topleft = (0, 0))
 
 		# Play Screen
 		self.play_txt1 = main_font.render('Click to Begin', False, LIGHT_YELLOW)
@@ -206,28 +206,28 @@ class Text:
 		self.play_txt4 = secondary_font.render('SCORE:', False, LIGHT_GREY, BLACK)
 		self.play_txt4_rect = self.play_txt4.get_rect(topright = (WIDTH, 80))
 
-		self.score_txt = None
-		self.score_txt_rect = None
+		self.score_txt = pygame.surface.Surface((0, 0))
+		self.score_txt_rect = self.score_txt.get_rect(topleft = (0, 0))
 
 		self.play_txt5 = secondary_font.render('HIGHSCORE:', False, LIGHT_GREY, BLACK)
 		self.play_txt5_rect = self.play_txt5.get_rect(topright = (WIDTH, 0))
 
-		self.high_score_txt = None
-		self.high_score_txt_rect = None
+		self.high_score_txt = pygame.surface.Surface((0, 0))
+		self.high_score_txt_rect = self.high_score_txt.get_rect(topleft = (0, 0))
 
 		self.play_txt6 = secondary_font.render('CHILLI ENERGY:', False, YELLOW, BLACK)
 		self.play_txt6_rect = self.play_txt6.get_rect(topleft = (0, 40))
 
-		self.chilli_energy_txt = None
-		self.chilli_energy_txt_rect = None
+		self.chilli_energy_txt = pygame.surface.Surface((0, 0))
+		self.chilli_energy_txt_rect = self.chilli_energy_txt.get_rect(topleft = (0, 0))
 
 		# Choose Taco Screen
 		self.choose_taco_txt1 = pygame.image.load(resource_path('images/text/choose-costume.png')).convert_alpha()
 		self.choose_taco_txt1 = pygame.transform.scale_by(self.choose_taco_txt1, 0.3)
 		self.choose_taco_txt1_rect = self.choose_taco_txt1.get_rect(center = (CENTRE_X, 75))
 
-		self.choose_taco_txt2 = None
-		self.choose_taco_txt2_rect = None
+		self.choose_taco_txt2 = pygame.surface.Surface((0, 0))
+		self.choose_taco_txt2_rect = self.choose_taco_txt2.get_rect(topleft = (0, 0))
 
 	def update(self) -> None:
 
@@ -245,19 +245,19 @@ class Text:
 			self.choose_taco_txt2_rect = self.choose_taco_txt2.get_rect(center = (CENTRE_X + 150, CENTRE_Y + 75))
 
 			self.texts = [
-				[self.menu_txt1, self.menu_txt1_rect], 
-				[self.menu_txt2, self.menu_txt2_rect],
-				[self.play_txt5, self.play_txt5_rect],
-				[self.high_score_txt, self.high_score_txt_rect],
-				[self.fps_text1, self.fps_text1_rect],
-				[self.fps_text2, self.fps_text2_rect],
-				[self.choose_taco_txt2, self.choose_taco_txt2_rect]
+				(self.menu_txt1, self.menu_txt1_rect), 
+				(self.menu_txt2, self.menu_txt2_rect),
+				(self.play_txt5, self.play_txt5_rect),
+				(self.high_score_txt, self.high_score_txt_rect),
+				(self.fps_text1, self.fps_text1_rect),
+				(self.fps_text2, self.fps_text2_rect),
+				(self.choose_taco_txt2, self.choose_taco_txt2_rect)
 			]
 		
 		elif self.game.state == 'controls':
 
 			self.texts = [
-				[self.control_txt1, self.control_txt1_rect],
+				(self.control_txt1, self.control_txt1_rect),
 			]
 
 		elif self.game.state == 'over':
@@ -272,18 +272,18 @@ class Text:
 			self.over_txt4_rect = self.over_txt4.get_rect(center = (CENTRE_X, CENTRE_Y - 80))
 
 			self.texts = [
-				[self.over_txt1, self.over_txt1_rect],
-				[self.over_txt2, self.over_txt2_rect],
-				[self.over_txt3, self.over_txt3_rect],
-				[self.over_txt4, self.over_txt4_rect],
-				[self.play_txt4, self.play_txt4_rect],
-				[self.play_txt5, self.play_txt5_rect],
-				[self.play_txt6, self.play_txt6_rect],
-				[self.score_txt, self.score_txt_rect],
-				[self.high_score_txt, self.high_score_txt_rect],
-				[self.chilli_energy_txt, self.chilli_energy_txt_rect],
-				[self.fps_text1, self.fps_text1_rect],
-				[self.fps_text2, self.fps_text2_rect]
+				(self.over_txt1, self.over_txt1_rect),
+				(self.over_txt2, self.over_txt2_rect),
+				(self.over_txt3, self.over_txt3_rect),
+				(self.over_txt4, self.over_txt4_rect),
+				(self.play_txt4, self.play_txt4_rect),
+				(self.play_txt5, self.play_txt5_rect),
+				(self.play_txt6, self.play_txt6_rect),
+				(self.score_txt, self.score_txt_rect),
+				(self.high_score_txt, self.high_score_txt_rect),
+				(self.chilli_energy_txt, self.chilli_energy_txt_rect),
+				(self.fps_text1, self.fps_text1_rect),
+				(self.fps_text2, self.fps_text2_rect)
 			]
 
 		elif self.game.state == 'play':
@@ -300,42 +300,42 @@ class Text:
 			if not self.game.started:
 
 				self.texts = [
-					[self.play_txt1, self.play_txt1_rect],
-					[self.play_txt4, self.play_txt4_rect],
-					[self.play_txt5, self.play_txt5_rect],
-					[self.play_txt6, self.play_txt6_rect],
-					[self.score_txt, self.score_txt_rect],
-					[self.high_score_txt, self.high_score_txt_rect],
-					[self.chilli_energy_txt, self.chilli_energy_txt_rect],
-					[self.fps_text1, self.fps_text1_rect],
-					[self.fps_text2, self.fps_text2_rect]
+					(self.play_txt1, self.play_txt1_rect),
+					(self.play_txt4, self.play_txt4_rect),
+					(self.play_txt5, self.play_txt5_rect),
+					(self.play_txt6, self.play_txt6_rect),
+					(self.score_txt, self.score_txt_rect),
+					(self.high_score_txt, self.high_score_txt_rect),
+					(self.chilli_energy_txt, self.chilli_energy_txt_rect),
+					(self.fps_text1, self.fps_text1_rect),
+					(self.fps_text2, self.fps_text2_rect)
 				]
 
 			elif self.game.started and self.game.paused:
 
 				self.texts = [
-					[self.play_txt2, self.play_txt2_rect],
-					[self.play_txt4, self.play_txt4_rect],
-					[self.play_txt5, self.play_txt5_rect],
-					[self.play_txt6, self.play_txt6_rect],
-					[self.score_txt, self.score_txt_rect],
-					[self.high_score_txt, self.high_score_txt_rect],
-					[self.chilli_energy_txt, self.chilli_energy_txt_rect],
-					[self.fps_text1, self.fps_text1_rect],
-					[self.fps_text2, self.fps_text2_rect]	
+					(self.play_txt2, self.play_txt2_rect),
+					(self.play_txt4, self.play_txt4_rect),
+					(self.play_txt5, self.play_txt5_rect),
+					(self.play_txt6, self.play_txt6_rect),
+					(self.score_txt, self.score_txt_rect),
+					(self.high_score_txt, self.high_score_txt_rect),
+					(self.chilli_energy_txt, self.chilli_energy_txt_rect),
+					(self.fps_text1, self.fps_text1_rect),
+					(self.fps_text2, self.fps_text2_rect)	
 				]
 
 			else:
 
 				self.texts = [
-					[self.play_txt4, self.play_txt4_rect],
-					[self.play_txt5, self.play_txt5_rect],
-					[self.play_txt6, self.play_txt6_rect],
-					[self.score_txt, self.score_txt_rect],
-					[self.high_score_txt, self.high_score_txt_rect],
-					[self.chilli_energy_txt, self.chilli_energy_txt_rect],
-					[self.fps_text1, self.fps_text1_rect],
-					[self.fps_text2, self.fps_text2_rect]
+					(self.play_txt4, self.play_txt4_rect),
+					(self.play_txt5, self.play_txt5_rect),
+					(self.play_txt6, self.play_txt6_rect),
+					(self.score_txt, self.score_txt_rect),
+					(self.high_score_txt, self.high_score_txt_rect),
+					(self.chilli_energy_txt, self.chilli_energy_txt_rect),
+					(self.fps_text1, self.fps_text1_rect),
+					(self.fps_text2, self.fps_text2_rect)
 				]
 
 		elif self.game.state == 'choose-taco':
@@ -344,10 +344,10 @@ class Text:
 			self.choose_taco_txt2_rect = self.choose_taco_txt2.get_rect(center = (CENTRE_X, CENTRE_Y - 150))
 		
 			self.texts = [
-				[self.choose_taco_txt1, self.choose_taco_txt1_rect],
-				[self.choose_taco_txt2, self.choose_taco_txt2_rect],
-				[self.fps_text1, self.fps_text1_rect],
-				[self.fps_text2, self.fps_text2_rect]
+				(self.choose_taco_txt1, self.choose_taco_txt1_rect),
+				(self.choose_taco_txt2, self.choose_taco_txt2_rect),
+				(self.fps_text1, self.fps_text1_rect),
+				(self.fps_text2, self.fps_text2_rect)
 			]
 
 		else: self.texts.clear()
@@ -375,7 +375,7 @@ class Player(pygame.sprite.Sprite):
 		self.MAX_CHILLI_ENERGY = 1000
 		self.JUMP_COST = 25
 		self.JUMP_BOOST = 750
-		self.y_vel = 0
+		self.y_vel = 0.0
 		self.chilli_energy = self.MAX_CHILLI_ENERGY
 		self.death_cause = ''
 		self.jumping = False
@@ -383,7 +383,7 @@ class Player(pygame.sprite.Sprite):
 	def update(self, dt: float) -> None:
 
 		self.pos = pygame.math.Vector2(self.pos)
-		self.rect.center = self.pos
+		self.rect.center = (round(self.pos.x), round(self.pos.y))
 		if self.chilli_energy > self.MAX_CHILLI_ENERGY: self.chilli_energy = self.MAX_CHILLI_ENERGY
 		self.input()
 		self.check_death()
@@ -403,12 +403,12 @@ class Player(pygame.sprite.Sprite):
 
 	def reset(self) -> None:
 
-		self.pos = (CENTRE_X - 200, CENTRE_Y)
+		self.pos = pygame.math.Vector2(CENTRE_X - 200, CENTRE_Y)
 		self.image = self.images[self.image_index]
 		self.mask = pygame.mask.from_surface(self.images[0])
 		self.rect = self.images[0].get_rect(center = self.pos)
 		self.chilli_energy = self.MAX_CHILLI_ENERGY
-		self.y_vel = 0
+		self.y_vel = 0.0
 		self.jumping = False
 		self.death_cause = ''
 
@@ -478,7 +478,7 @@ class Fork(pygame.sprite.Sprite):
 	
 	def update(self, dt: float) -> None:
 
-		self.rect.center = self.pos
+		self.rect.center = (round(self.pos.x), round(self.pos.y))	
 		self.scroll(dt)
 		if not self.passed: self.update_score()
 
@@ -519,7 +519,7 @@ class Chilli(pygame.sprite.Sprite):
 
 	def update(self, dt: float) -> None:
 
-		self.rect.center = self.pos
+		self.rect.center = (round(self.pos.x), round(self.pos.y))
 		self.scroll(dt)
 		if not self.collected: self.check_collision()
 
@@ -553,7 +553,7 @@ class Background(pygame.sprite.Sprite):
 
 	def update(self, dt: float) -> None:
 
-		self.rect.center = self.pos
+		self.rect.center = (round(self.pos.x), round(self.pos.y))
 		self.scroll(dt)
 
 	def scroll(self, dt: float) -> None:
@@ -579,7 +579,7 @@ class Button(pygame.sprite.Sprite):
 		if animation_type == 'float':
 
 			self.image = self.default
-			self.scale = 1
+			self.scale = 1.0
 
 		self.rect = self.image.get_rect(center = pos)
 		self.pos = pygame.math.Vector2(self.rect.center)
@@ -599,7 +599,7 @@ class Button(pygame.sprite.Sprite):
 	def update(self, dt: float) -> None:
 
 		if self.animation_type == 'slide': self.image = self.frames[self.state]
-		self.rect.center = self.pos
+		self.rect.center = (round(self.pos.x), round(self.pos.y))
 		self.input(dt)
 
 	def input(self, dt: float) -> None:
@@ -701,8 +701,8 @@ class Intro_Sprite(pygame.sprite.Sprite):
 			self.normal = pygame.transform.scale_by(self.game.player.sprite.images[self.game.player.sprite.image_index], self.SCALE).convert_alpha()
 			self.large = pygame.transform.scale_by(self.normal, 1.3).convert_alpha()
 			self.frames = [self.normal, self.large]
-			self.frame_index = 0
-			self.image = self.frames[self.frame_index]
+			self.frame_index = 0.0
+			self.image = self.frames[int(self.frame_index)]
 			self.rect = self.image.get_rect(center = self.pos)
 	
 	def update(self, dt: float) -> None:
@@ -714,7 +714,7 @@ class Intro_Sprite(pygame.sprite.Sprite):
 		self.normal = pygame.transform.scale_by(self.game.player.sprite.images[self.game.player.sprite.image_index], self.SCALE).convert_alpha()
 		self.large = pygame.transform.scale_by(self.normal, 1.3).convert_alpha()
 		self.frames = [self.normal, self.large]
-		self.frame_index += self.frame_vel * dt
+		self.frame_index = self.frame_index + (self.frame_vel * dt)
 		self.frame_index %= len(self.frames)
 		self.image = self.frames[int(self.frame_index)]
 		self.rect = self.image.get_rect(center = (self.pos[0], self.pos[1] - 15))
@@ -745,7 +745,7 @@ class Menu_Background(pygame.sprite.Sprite):
 
 	def update(self, dt: float) -> None:
 
-		self.rect.center = self.pos
+		self.rect.center = (round(self.pos.x), round(self.pos.y))
 		self.animate(dt)
 
 	def animate(self, dt: float) -> None:
@@ -754,7 +754,7 @@ class Menu_Background(pygame.sprite.Sprite):
 	def reset(self) -> None:
 		self.pos = pygame.math.Vector2(self.start_pos)
 
-def main():
+def main() -> None:
 
 	start_time = time()
 
@@ -909,4 +909,4 @@ def main():
 		pygame.display.update()
 		clock.tick(0 if VSYNC else FPS)
 
-main()
+if __name__ == '__main__': main()

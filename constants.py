@@ -3,24 +3,20 @@ import os
 
 def save_path(relative_path: str) -> str:
 
-    if getattr(sys, 'frozen', False): return os.path.join(os.getenv('APPDATA'), '08BitPixels/Flappy Taco/', relative_path)
-    else: return os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
+	if getattr(sys, 'frozen', False): return os.path.join(os.getenv('APPDATA', ''), '08BitPixels/Flappy Taco/', relative_path)
+	else: return os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
 
-def save_config(
+def save_config(settings: dict[str, int | float]) -> None:
 		
-		  	settings: dict[
-				  
-				'SCREEN_WIDTH': int | str,
-				'SCREEN_HEIGHT': int | str,
-				'FPS': int,
-				'VSYNC': int,
+		'''
+		'SCREEN_WIDTH': int | str,
+		'SCREEN_HEIGHT': int | str,
+		'FPS': int,
+		'VSYNC': int,
 
-				'MUSIC_VOL': float | int,
-				'SFX_VOL': float | int
-
-			]
-			
-		) -> None:
+		'MUSIC_VOL': float | int,
+		'SFX_VOL': float | int
+		'''
 
 		print('\nSaving Config...')
 		with open(save_path('saves\\config.txt'), 'w') as config: 
@@ -77,7 +73,7 @@ def load_config() -> dict:
 		save_config(settings = DEFAULT_CONFIG)
 		return DEFAULT_CONFIG
 
-def splashscreen_size(img_size: tuple[int, int], screen_size: tuple[int, int]) -> tuple[int, int]:
+def splashscreen_size(img_size: tuple[int | float, int | float], screen_size: tuple[int, int]) -> tuple[float, float]:
 
 	if img_size[0] > screen_size[0]: img_size = (screen_size[0], (screen_size[0] / img_size[0]) * img_size[1])
 	if img_size[1] > screen_size[1]: img_size = ((screen_size[1] / img_size[1]) * img_size[0], screen_size[1]) 
