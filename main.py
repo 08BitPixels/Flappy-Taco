@@ -1,6 +1,7 @@
 import pygame
 import os
 import sys
+import githubfetch
 
 from random import randint
 from time import time
@@ -12,6 +13,9 @@ def resource_path(relative_path: str) -> str:
 
 	base_path = getattr(sys, '_MEIPASS', os.path.abspath('.'))
 	return os.path.join(base_path, relative_path)
+
+# Check for Update
+githubfetch.main()
 
 # PYGAME SETUP
 pygame.init()
