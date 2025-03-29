@@ -4,3 +4,4 @@ pyproject.toml
 replit.nix
 pyinstaller/
 __pycache__/
+save_data/

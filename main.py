@@ -6,13 +6,14 @@ import githubfetch
 from random import randint
 from time import time
 
-from constants import splashscreen_size, save_path, save_config
+from constants import splashscreen_size, file_handler
 from constants import WIDTH, HEIGHT, VSYNC, CENTRE_X, CENTRE_Y, LIGHT_GREY, BLACK, LIGHT_YELLOW, GREEN, YELLOW, RED, WHITE, MUSIC_VOL, SFX_VOL, FPS
 
 def resource_path(relative_path: str) -> str:
 
-	base_path = getattr(sys, '_MEIPASS', os.path.abspath('.'))
-	return os.path.join(base_path, relative_path)
+	if getattr(sys, '_MEIPASS', True): path = os.path.join('_internal', relative_path)
+	else: path = relative_path
+	return path
 
 # Check for Update
 githubfetch.main()
@@ -45,15 +46,14 @@ class Game:
 		self.started = False
 		self.paused = False
 		self.score = 0
-		self.high_score = 0
-		self.load_save()
+		self.high_score = file_handler.user_data['highscore']
 
 		# Fork Settings
 		self.fork_speed = 400
 		self.fork_count = 5
 
 		self.text = Text(self)
-		self.player = pygame.sprite.GroupSingle(Player(self))
+		self.player = pygame.sprite.GroupSingle(Player(game = self, costume_index = file_handler.user_data['costume_index']))
 		self.forks: pygame.sprite.Group = pygame.sprite.Group()
 		self.chillies: pygame.sprite.Group = pygame.sprite.Group()
 		self.background = pygame.sprite.Group(
@@ -74,12 +74,12 @@ class Game:
 			Button(type = 'arrow-right', pos = (CENTRE_X + 300, CENTRE_Y), animation_type = 'float', animation_offset = 0.4, press_state = 'next-costume', game = self)
 		)
 		self.game_over_sprites = pygame.sprite.Group(
-			Menu_Background(pos = (CENTRE_X, 0), offset = HEIGHT / 2),
+			Menu_Background(pos = (CENTRE_X, 0), offset = HEIGHT // 2),
 			Button(type = 'try-again', pos = (CENTRE_X, CENTRE_Y + 60), animation_type = 'float', animation_offset = 0.2, press_state = 'play', game = self),
 			Button(type = 'main-menu', pos = (CENTRE_X, CENTRE_Y + 160), animation_type = 'float', animation_offset = 0.2, press_state = 'menu', game = self)
 		)
 		self.pause_sprites = pygame.sprite.Group(
-			Menu_Background(pos = (CENTRE_X, 0), offset = HEIGHT / 2),
+			Menu_Background(pos = (CENTRE_X, 0), offset = HEIGHT // 2),
 			Button(type = 'resume', pos = (CENTRE_X, CENTRE_Y + 50), animation_type = 'float', animation_offset = 0.2, press_state = 'unpause', game = self),
 			Button(type = 'main-menu', pos = (CENTRE_X, CENTRE_Y + 150), animation_type = 'float', animation_offset = 0.2, press_state = 'menu', game = self)
 		)
@@ -136,25 +136,6 @@ class Game:
 
 		self.score += 1
 		if self.score > self.high_score: self.high_score = self.score
-
-	def save(self, high_score: int, costume_num: int) -> None:
-
-		print('\nSaving Progress...')
-		with open(save_path('saves\\saves.txt'), 'w') as saves: saves.writelines(f'highscore={high_score}\ncostume={costume_num}')
-		print('Saved\n')
-
-	def load_save(self) -> None:
-
-		if os.path.isfile(save_path('saves\\saves.txt')):
-
-			with open(save_path('saves\\saves.txt'), 'r') as saves: self.high_score = int(saves.readlines()[0].split('=')[1].strip('\n'))
-
-		else:
-
-			print('No save file present; creating new one...')
-			if not os.path.isdir(save_path('saves\\')): os.makedirs(save_path('saves\\'))
-			self.save(high_score = 0, costume_num = 0)
-			self.high_score = 0
 
 class Text:
 
@@ -358,13 +339,13 @@ class Text:
 
 class Player(pygame.sprite.Sprite):
 
-	def __init__(self, game: Game) -> None:
+	def __init__(self, game: Game, costume_index: int) -> None:
 
 		super().__init__()
 
 		self.images = [pygame.transform.scale_by(pygame.image.load(resource_path(f'images/player/taco{i}.png')).convert_alpha(), 0.3) for i in range(7)]
 
-		with open(save_path('saves/saves.txt'), 'r') as saves: self.image_index = int(saves.readlines()[1].split('=')[1].strip('\n'))
+		self.image_index = costume_index
 		self.image = self.images[self.image_index]
 		self.mask = pygame.mask.from_surface(self.images[0])
 
@@ -786,19 +767,22 @@ def main() -> None:
 
 			if event.type == pygame.QUIT:
 
-				config = {
-
-					'SCREEN_WIDTH': WIDTH,
-					'SCREEN_HEIGHT': HEIGHT,
-					'FPS': FPS,
-					'VSYNC': VSYNC,
-
-					'MUSIC_VOL': MUSIC_VOL,
-					'SFX_VOL': SFX_VOL
-
+				config: dict[str, dict[str, int | float]] = {
+					'screen_setup': {
+						'width': WIDTH,
+						'height': HEIGHT,
+						'FPS': FPS,
+						'VSYNC': VSYNC
+					},
+					'audio_volume': {
+						'music': MUSIC_VOL,
+						'sfx': MUSIC_VOL
+					}
 				}
-				save_config(config)
-				game.save(high_score = game.high_score, costume_num = player.sprite.image_index)
+
+				file_handler.save_data(mode = 0, data = config)
+				file_handler.save_data(mode = 1, data = {'high_score': game.high_score, 'costume_index': player.sprite.image_index})
+
 				pygame.quit()
 				sys.exit()
 
