@@ -4,6 +4,53 @@ import toml
 import ctypes
 from textwrap import dedent
 
+def popup_window(title: str, description: str, perams: int) -> int: # -> response
+
+	'''
+	WINDOW CODES
+
+	MessageBoxW(
+		hWnd,      | owner window
+		lpText,    | description
+		lpCaption, | title
+		uType      | icon & buttons perameters (seperate codes with '|' operator)
+	)
+
+	Buttons
+	0 | OK
+	1 | OK, Cancel
+	2 | Abort, Retry, Ignore
+	3 | Yes, No, Cancel
+	4 | Yes, No
+	5 | Retry, Cancel
+	6 | Cancel, Try Again, Continue
+
+	Icons
+	0x10 | Stop
+	0x20 | Question
+	0x30 | Warning
+	0x40 | Info
+
+	Return Value - which button was pressed
+	1  | Ok
+	2  | Cancel
+	3  | Abort
+	4  | Retry
+	5  | Ignore
+	6  | Yes
+	7  | No
+	10 | Try Again
+	11 | Continue
+	'''
+
+	response = ctypes.windll.user32.MessageBoxW(
+		0, 
+		description, 
+		title, 
+		perams
+	)
+	return response
+
 def splashscreen_size(img_size: tuple[int | float, int | float], screen_size: tuple[int, int]) -> tuple[float, float]:
 
 	if img_size[0] > screen_size[0]: img_size = (screen_size[0], (screen_size[0] / img_size[0]) * img_size[1])
@@ -105,7 +152,7 @@ class FileHandler:
 					dir_contents.remove(present)
 					if not dir_contents: self.to_remove.append(path)
 
-				else:
+				elif 'config.txt' in dir_contents or 'saves.txt' in dir_contents:
 					
 					if 'config.txt' in dir_contents:
 						
@@ -116,10 +163,13 @@ class FileHandler:
 						
 						self.load_old_user_data(path = os.path.join(path, 'saves.txt'))
 						os.remove(os.path.join(path, 'saves.txt'))
+					
+				else:
+					print('dir does not contain old Flappy Taco directories; skipping...')
 
 			else:
 
-				print('| dir is empty')
+				print('| dir is empty; removing...')
 				self.to_remove.append(path)
 
 		else:
@@ -215,7 +265,7 @@ class FileHandler:
 		else:
 
 			print('No user data file present; creating new one...')
-			self.user_data = {'highscore': 0, 'costume_index': 0}
+			self.user_data = {'high_score': 0, 'costume_index': 0}
 			self.save_data(mode = 1, data = self.user_data)
 
 		print('user data loaded')
@@ -262,7 +312,7 @@ class FileHandler:
 		costume_index = int(contents[1].split('=')[1].strip('\n'))
 
 		self.user_data = {
-			'highscore': high_score,
+			'high_score': high_score,
 			'costume_index': costume_index
 		}
 		self.save_data(mode = 1, data = self.user_data)

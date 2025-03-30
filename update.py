@@ -5,42 +5,8 @@ import zipfile
 import os
 import subprocess
 
-'''
-WINDOW CODES
-
-MessageBoxW(
-	hWnd,      | owner window
-	lpText,    | description
-	lpCaption, | title
-	uType      | icon & buttons perameters (seperate codes with '|' operator)
-)
-
-Buttons
-0 | OK
-1 | OK, Cancel
-2 | Abort, Retry, Ignore
-3 | Yes, No, Cancel
-4 | Yes, No
-5 | Retry, Cancel
-6 | Cancel, Try Again, Continue
-
-Icons
-0x10 | Stop
-0x20 | Question
-0x30 | Warning
-0x40 | Info
-
-Return Value - which button was pressed
-1  | Ok
-2  | Cancel
-3  | Abort
-4  | Retry
-5  | Ignore
-6  | Yes
-7  | No
-10 | Try Again
-11 | Continue
-'''
+from textwrap import dedent
+from assets import popup_window
 
 CURRENT_VERSION = 'v1.2.0'
 API_URL = 'https://api.github.com/repos/08BitPixels/Flappy-Taco/releases/latest'
@@ -127,7 +93,14 @@ def main() -> None:
 
 	if update_available:
 
-		to_update = not (ctypes.windll.user32.MessageBoxW(0, f'Download: Flappy Taco {latest_version}?\n(The new version will be downloaded and installed automatically)', 'Update Available', 4 | 0x40) - 6)
+		description = dedent(
+			f'''
+			Download: Flappy Taco {latest_version}?
+			(The new version will be downloaded and installed automatically)
+			'''
+		)
+		response = popup_window(title = 'Update Available', description = description, perams = 4 | 0x40)
+		to_update = not (response - 6)
 		if to_update: update(latest_version)
 
 if __name__ == '__main__': main()
