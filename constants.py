@@ -1,4 +1,5 @@
 import os
+import sys
 import toml
 import ctypes
 from textwrap import dedent
@@ -20,7 +21,10 @@ class FileHandler:
 		self.user_data_file_name = 'user_data.toml'
 
 		self.config_path = self.save_path(self.config_file_name)
-		self.user_data_path =self.save_path(self.user_data_file_name)
+		self.user_data_path = self.save_path(self.user_data_file_name)
+
+		print(self.config_path)
+		print(self.user_data_path)
 
 		self.DEFAULT_CONFIG: dict[str, dict[str, int | float]] = {
 			'screen_setup': {
@@ -47,7 +51,18 @@ class FileHandler:
 		self.load_user_data()
 
 	def save_path(self, relative_path: str = '') -> str:
-		return os.path.join(self.base_path, self.save_dir_name, relative_path)
+
+		if getattr(sys, '_MEIPASS', False):
+
+			match relative_path:
+				case self.config_file_name: path = os.path.join(self.base_path, '..', relative_path)
+				case self.user_data_file_name: path = os.path.join(self.base_path, relative_path)
+				case _: path = os.path.join(self.base_path, relative_path)
+		
+		else:
+			path = os.path.join(self.base_path, self.save_dir_name, relative_path)
+
+		return path
 
 	def remove_dir(self, path: str) -> None:
 

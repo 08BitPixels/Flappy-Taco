@@ -1,7 +1,7 @@
 import pygame
 import os
 import sys
-import githubfetch
+# import update
 
 from random import randint
 from time import time
@@ -11,12 +11,12 @@ from constants import WIDTH, HEIGHT, VSYNC, CENTRE_X, CENTRE_Y, LIGHT_GREY, BLAC
 
 def resource_path(relative_path: str) -> str:
 
-	if getattr(sys, '_MEIPASS', True): path = os.path.join('_internal', relative_path)
+	if getattr(sys, '_MEIPASS', False): path = os.path.join('_internal', relative_path)
 	else: path = relative_path
 	return path
 
 # Check for Update
-githubfetch.main()
+# update.main()
 
 # PYGAME SETUP
 pygame.init()
@@ -46,7 +46,7 @@ class Game:
 		self.started = False
 		self.paused = False
 		self.score = 0
-		self.high_score = file_handler.user_data['highscore']
+		self.high_score = file_handler.user_data['high_score']
 
 		# Fork Settings
 		self.fork_speed = 400
@@ -754,7 +754,7 @@ def main() -> None:
 	game_over_sprites = game.game_over_sprites
 	pause_sprites = game.pause_sprites
 
-	print(f'Loaded in {round(time() - start_time, 3)}s')
+	print(f'\ngame loaded in {round(time() - start_time, 3)}s')
 	pygame.display.set_caption('Flappy Taco')
 
 	previous_time = time()

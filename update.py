@@ -113,7 +113,7 @@ def update(latest_version: str) -> None:
 		exe_path = f'{dest_path}/FlappyTaco.exe'
 		subprocess.run([exe_path], shell = True)
 
-		current_dir = os.path.dirname(__file__)
+		# current_dir = os.path.dirname(__file__)
 
 		#shutil.rmtree(current_dir)
 
@@ -128,7 +128,6 @@ def main() -> None:
 	if update_available:
 
 		to_update = not (ctypes.windll.user32.MessageBoxW(0, f'Download: Flappy Taco {latest_version}?\n(The new version will be downloaded and installed automatically)', 'Update Available', 4 | 0x40) - 6)
-
 		if to_update: update(latest_version)
 
 if __name__ == '__main__': main()
