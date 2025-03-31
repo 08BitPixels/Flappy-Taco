@@ -1,22 +1,25 @@
-import pygame
-import os
-import sys
-# import update
-
 from random import randint
 from time import time
 
-from assets import splashscreen_size, popup_window, file_handler
-from assets import WIDTH, HEIGHT, VSYNC, CENTRE_X, CENTRE_Y, LIGHT_GREY, BLACK, LIGHT_YELLOW, GREEN, YELLOW, RED, WHITE, MUSIC_VOL, SFX_VOL, FPS
+import pygame
 
-def resource_path(relative_path: str) -> str:
+# import update
+import logs
+from assets import (
+	WIDTH, HEIGHT,
+	CENTRE_X, CENTRE_Y,
+	FPS, VSYNC,
+	VOLUMES,
+	COLOURS,
+	file_handler,
+	popup_window,
+	resource_path,
+	splashscreen_size
+)
 
-	if getattr(sys, '_MEIPASS', False): path = os.path.join('_internal', relative_path)
-	else: path = relative_path
-	return path
-
-# Check for Update
-# update.main()
+# update.main() # check for updates
+logger = logs.get_logger(file = 'main.py') # get logger
+logger.info('initialising program...')
 
 # PYGAME SETUP
 pygame.init()
@@ -52,6 +55,28 @@ class Game:
 		self.fork_speed = 400
 		self.fork_count = 5
 
+		# Audio
+		logger.info('initialising audio')
+
+		self.MUSIC = pygame.mixer.Sound(resource_path('audio/music/raining-tacos.mp3'))
+		self.MUSIC.set_volume(VOLUMES['music'])
+
+		self.SFX: dict[str, dict[str, pygame.mixer.Sound]] = {
+			'chilli': {
+				'collect': pygame.mixer.Sound(resource_path('audio/sfx/chilli/collect.mp3')),
+			},
+			'player': {
+				'death': pygame.mixer.Sound(resource_path('audio/sfx/player/death.mp3')),
+				'jump': pygame.mixer.Sound(resource_path('audio/sfx/player/jump.wav'))
+			},
+			'button': {
+				'click': pygame.mixer.Sound(resource_path('audio/sfx/button/click.wav'))
+			}
+		}
+		
+		logger.info('audio initialised')
+
+		logger.info('initialising sprites...')
 		self.text = Text(self)
 		self.player = pygame.sprite.GroupSingle(Player(game = self))
 		self.forks: pygame.sprite.Group = pygame.sprite.Group()
@@ -83,6 +108,7 @@ class Game:
 			Button(type = 'resume', pos = (CENTRE_X, CENTRE_Y + 50), animation_type = 'float', animation_offset = 0.2, press_state = 'unpause', game = self),
 			Button(type = 'main-menu', pos = (CENTRE_X, CENTRE_Y + 150), animation_type = 'float', animation_offset = 0.2, press_state = 'menu', game = self)
 		)
+		logger.info('sprites inititalised')
 
 		# Timers
 		self.CHILLI_FREQUENCY = 1
@@ -90,14 +116,7 @@ class Game:
 		self.fork_timer = pygame.USEREVENT + 1
 		pygame.time.set_timer(self.fork_timer, self.FORK_FREQUENCY)
 
-		# Music
-		self.music = pygame.mixer.Sound(resource_path('audio/music/raining-tacos.mp3'))
-		self.music.set_volume(MUSIC_VOL)
-		self.music.play(loops = -1)
-
-		# SFX
-		self.death_sfx = pygame.mixer.Sound(resource_path('audio/sfx/player/death.mp3'))
-		self.death_sfx.set_volume(1 * SFX_VOL)
+		self.MUSIC.play(loops = -1)
 
 	def chilli_collected(self) -> None:
 		self.player.sprite.chilli_energy += 200
@@ -116,7 +135,7 @@ class Game:
 		
 	def handle_game_over(self) -> None:
 
-		self.death_sfx.play()
+		self.SFX['player']['death'].play()
 		self.state = 'over'
 
 	def add_forks(self) -> None:
@@ -139,28 +158,43 @@ class Game:
 
 	def quit(self) -> None:
 
-		config: dict[str, dict[str, int | float]] = {
-			'screen_setup': {
-				'width': WIDTH,
-				'height': HEIGHT,
-				'FPS': FPS,
-				'VSYNC': VSYNC
-			},
-			'audio_volume': {
-				'music': MUSIC_VOL,
-				'sfx': MUSIC_VOL
+		logger.info('quit requested, confirming...')
+
+		response = popup_window(
+			title = 'Quit',
+			description = 'Are you sure you want to quit the game?', 
+			perams = 4 | 0x20
+		)
+		to_quit = not (response - 6)
+
+		if to_quit:
+
+			config: dict[str, dict[str, int | float]] = {
+				'screen_setup': {
+					'width': WIDTH,
+					'height': HEIGHT,
+					'FPS': FPS,
+					'VSYNC': VSYNC
+				},
+				'audio_volume': {
+					'music': VOLUMES['music'],
+					'sfx': VOLUMES['sfx']
+				}
 			}
-		}
-		user_data: dict[str, int] = {
-			'high_score': self.high_score, 
-			'costume_index': self.player.sprite.image_index
-		}
+			user_data: dict[str, int] = {
+				'high_score': self.high_score, 
+				'costume_index': self.player.sprite.image_index
+			}
 
-		file_handler.save_data(mode = 0, data = config)
-		file_handler.save_data(mode = 1, data = user_data)
+			file_handler.save_data(mode = 0, data = config)
+			file_handler.save_data(mode = 1, data = user_data)
 
-		pygame.quit()
-		sys.exit()
+			logger.info('quit confirmed, quitting game...')
+
+			pygame.quit()
+			exit()
+		
+		logger.info('quit cancelled')
 
 class Text:
 
@@ -171,7 +205,7 @@ class Text:
 
 		# Texts
 
-		self.fps_text1 = secondary_font.render('FPS:', False, LIGHT_GREY, BLACK)
+		self.fps_text1 = secondary_font.render('FPS:', False, COLOURS['light_grey'], COLOURS['black'])
 		self.fps_text1_rect = self.fps_text1.get_rect(topleft = (0, 0))
 
 		self.fps_text2 = pygame.surface.Surface((0, 0))
@@ -206,26 +240,26 @@ class Text:
 		self.over_txt4_rect = self.over_txt4.get_rect(topleft = (0, 0))
 
 		# Play Screen
-		self.play_txt1 = main_font.render('Click to Begin', False, LIGHT_YELLOW)
+		self.play_txt1 = main_font.render('Click to Begin', False, COLOURS['light_yellow'])
 		self.play_txt1_rect = self.play_txt1.get_rect(center = (CENTRE_X, CENTRE_Y - 100))
 
 		self.play_txt2 = pygame.image.load(resource_path('images/text/paused.png')).convert_alpha()
 		self.play_txt2 = pygame.transform.scale_by(self.play_txt2, 0.3)
 		self.play_txt2_rect = self.play_txt2.get_rect(center = (CENTRE_X, CENTRE_Y - 120))
 
-		self.play_txt4 = secondary_font.render('SCORE:', False, LIGHT_GREY, BLACK)
+		self.play_txt4 = secondary_font.render('SCORE:', False, COLOURS['light_grey'], COLOURS['black'])
 		self.play_txt4_rect = self.play_txt4.get_rect(topright = (WIDTH, 80))
 
 		self.score_txt = pygame.surface.Surface((0, 0))
 		self.score_txt_rect = self.score_txt.get_rect(topleft = (0, 0))
 
-		self.play_txt5 = secondary_font.render('HIGHSCORE:', False, LIGHT_GREY, BLACK)
+		self.play_txt5 = secondary_font.render('HIGHSCORE:', False, COLOURS['light_grey'], COLOURS['black'])
 		self.play_txt5_rect = self.play_txt5.get_rect(topright = (WIDTH, 0))
 
 		self.high_score_txt = pygame.surface.Surface((0, 0))
 		self.high_score_txt_rect = self.high_score_txt.get_rect(topleft = (0, 0))
 
-		self.play_txt6 = secondary_font.render('CHILLI ENERGY:', False, YELLOW, BLACK)
+		self.play_txt6 = secondary_font.render('CHILLI ENERGY:', False, COLOURS['yellow'], COLOURS['black'])
 		self.play_txt6_rect = self.play_txt6.get_rect(topleft = (0, 40))
 
 		self.chilli_energy_txt = pygame.surface.Surface((0, 0))
@@ -242,18 +276,18 @@ class Text:
 	def update(self) -> None:
 
 		fps = round(clock.get_fps())
-		fps_colour = GREEN if (fps >= 60) else YELLOW if (fps < 60 and fps >= 10) else RED
-		self.fps_text2 = secondary_font.render(str(fps), False, fps_colour, BLACK)
+		fps_colour = COLOURS['green'] if (fps >= 60) else COLOURS['yellow'] if (fps < 60 and fps >= 10) else COLOURS['red']
+		self.fps_text2 = secondary_font.render(str(fps), False, fps_colour, COLOURS['black'])
 		self.fps_text2_rect = self.fps_text2.get_rect(topleft = (75, 0))
 
 		match self.game.state:
 
 			case 'menu':
 
-				self.high_score_txt = main_font.render(str(self.game.high_score), False, WHITE, BLACK)
+				self.high_score_txt = main_font.render(str(self.game.high_score), False, COLOURS['white'], COLOURS['black'])
 				self.high_score_txt_rect = self.high_score_txt.get_rect(topright = (WIDTH, 30))
 
-				self.choose_taco_txt2 = main_font.render(self.game.player.sprite.costume_name(), False, LIGHT_YELLOW, BLACK)
+				self.choose_taco_txt2 = main_font.render(self.game.player.sprite.costume_name(), False, COLOURS['light_yellow'], COLOURS['black'])
 				self.choose_taco_txt2_rect = self.choose_taco_txt2.get_rect(center = (CENTRE_X + 150, CENTRE_Y + 75))
 
 				self.texts = [
@@ -274,13 +308,13 @@ class Text:
 
 			case 'over':
 
-				self.over_txt2 = secondary_font.render(f"Final Score: {self.game.score}", False, LIGHT_GREY, BLACK)
+				self.over_txt2 = secondary_font.render(f"Final Score: {self.game.score}", False, COLOURS['light_grey'], COLOURS['black'])
 				self.over_txt2_rect = self.over_txt2.get_rect(center = (CENTRE_X, CENTRE_Y - 40))
 
-				self.over_txt3 = secondary_font.render(f"HIGHSCORE: {self.game.high_score}", False, LIGHT_GREY, BLACK)
+				self.over_txt3 = secondary_font.render(f"HIGHSCORE: {self.game.high_score}", False, COLOURS['light_grey'], COLOURS['black'])
 				self.over_txt3_rect = self.over_txt3.get_rect(center = (CENTRE_X, CENTRE_Y - 10))
 
-				self.over_txt4 = secondary_font.render(f"You {self.game.player.sprite.death_cause}!", False, RED, BLACK)
+				self.over_txt4 = secondary_font.render(f"You {self.game.player.sprite.death_cause}!", False, COLOURS['red'], COLOURS['black'])
 				self.over_txt4_rect = self.over_txt4.get_rect(center = (CENTRE_X, CENTRE_Y - 80))
 
 				self.texts = [
@@ -300,13 +334,13 @@ class Text:
 
 			case 'play':
 
-				self.score_txt = main_font.render(str(self.game.score), False, WHITE, BLACK)
+				self.score_txt = main_font.render(str(self.game.score), False, COLOURS['white'], COLOURS['black'])
 				self.score_txt_rect = self.score_txt.get_rect(topright = (WIDTH, 110))
 
-				self.high_score_txt = main_font.render(str(self.game.high_score), False, WHITE, BLACK)
+				self.high_score_txt = main_font.render(str(self.game.high_score), False, COLOURS['white'], COLOURS['black'])
 				self.high_score_txt_rect = self.high_score_txt.get_rect(topright = (WIDTH, 30))
 
-				self.chilli_energy_txt = main_font.render(str(self.game.player.sprite.chilli_energy), False, LIGHT_YELLOW, BLACK)
+				self.chilli_energy_txt = main_font.render(str(self.game.player.sprite.chilli_energy), False, COLOURS['light_yellow'], COLOURS['black'])
 				self.chilli_energy_txt_rect = self.chilli_energy_txt.get_rect(topleft = (0, 70))
 
 				if not self.game.started:
@@ -352,7 +386,7 @@ class Text:
 
 			case 'choose-taco':
 
-				self.choose_taco_txt2 = main_font.render(self.game.player.sprite.costume_name(), False, LIGHT_YELLOW, BLACK)
+				self.choose_taco_txt2 = main_font.render(self.game.player.sprite.costume_name(), False, COLOURS['light_yellow'], COLOURS['black'])
 				self.choose_taco_txt2_rect = self.choose_taco_txt2.get_rect(center = (CENTRE_X, CENTRE_Y - 150))
 			
 				self.texts = [
@@ -369,6 +403,7 @@ class Player(pygame.sprite.Sprite):
 	def __init__(self, game: Game) -> None:
 
 		super().__init__()
+		self.game = game
 
 		self.images = [pygame.transform.scale_by(pygame.image.load(resource_path(f'images/player/taco{i}.png')).convert_alpha(), 0.3) for i in range(7)]
 
@@ -379,10 +414,9 @@ class Player(pygame.sprite.Sprite):
 		self.rect = self.images[0].get_rect(center = (CENTRE_X - 200, CENTRE_Y))
 		self.pos = pygame.math.Vector2(self.rect.center)
 
-		self.jump_sfx = pygame.mixer.Sound(resource_path('audio/sfx/player/jump.wav'))
-		self.jump_sfx.set_volume(2 * SFX_VOL)
+		self.SFX = self.game.SFX['player']
+		self.SFX['jump'].set_volume(2 * VOLUMES['sfx'])
 
-		self.game = game
 		self.GRAVITY = 3000
 		self.MAX_CHILLI_ENERGY = 1000
 		self.JUMP_COST = 25
@@ -452,7 +486,7 @@ class Player(pygame.sprite.Sprite):
 
 		if self.chilli_energy > 0:
 
-			self.jump_sfx.play()
+			self.SFX['jump'].play()
 			self.y_vel = -self.JUMP_BOOST
 			self.chilli_energy -= self.JUMP_COST
 
@@ -513,19 +547,19 @@ class Chilli(pygame.sprite.Sprite):
 	def __init__(self, speed: int, y_offset: int, game: Game) -> None:
 
 		super().__init__()
+		self.game = game
 
 		self.chilli = pygame.image.load(resource_path('images/chilli/chilli.png')).convert_alpha()
 		self.chilli = pygame.transform.scale_by(self.chilli, 1.25)
-		self.collect = main_font.render('+100', False, LIGHT_YELLOW, BLACK)
+		self.collect = main_font.render('+100', False, COLOURS['light_yellow'], COLOURS['black'])
 
 		self.image = self.chilli
 		self.rect = self.image.get_rect(center = (WIDTH + 50, y_offset))
 		self.pos = pygame.math.Vector2(self.rect.center)
 
-		self.collect_sfx = pygame.mixer.Sound(resource_path('audio/sfx/chilli/chilli-collect.mp3'))
-		self.collect_sfx.set_volume(5 * SFX_VOL)
+		self.SFX = self.game.SFX['chilli']
+		self.SFX['collect'].set_volume(5 * VOLUMES['sfx'])
 
-		self.game = game
 		self.speed = speed
 		self.collected = False
 
@@ -546,7 +580,7 @@ class Chilli(pygame.sprite.Sprite):
 			
 			self.collected = True
 			self.game.chilli_collected()
-			self.collect_sfx.play()
+			self.SFX['collect'].play()
 			self.image = self.collect
 			self.rect = self.image.get_rect(center = self.pos)
 
@@ -578,6 +612,7 @@ class Button(pygame.sprite.Sprite):
 	def __init__(self, type: str, pos: tuple, animation_type: str, animation_offset: int | float, press_state: str, game: Game) -> None:
 
 		super().__init__()
+		self.game = game
 
 		self.default = pygame.image.load(resource_path(f'images/button/{type}/{type}.png')).convert_alpha()
 
@@ -596,10 +631,9 @@ class Button(pygame.sprite.Sprite):
 		self.rect = self.image.get_rect(center = pos)
 		self.pos = pygame.math.Vector2(self.rect.center)
 
-		self.click_sfx = pygame.mixer.Sound(resource_path('audio/sfx/button/click.wav'))
-		self.click_sfx.set_volume(0.25 * SFX_VOL)
+		self.SFX = self.game.SFX['button']
+		self.SFX['click'].set_volume(0.25 * VOLUMES['sfx'])
 
-		self.game = game
 		self.type = type
 		self.start_pos = pos
 		self.animation_type = animation_type
@@ -659,7 +693,7 @@ class Button(pygame.sprite.Sprite):
 
 	def pressed(self) -> None:
 
-		self.click_sfx.play()
+		self.SFX['click'].play()
 
 		match self.press_state:
 
@@ -784,7 +818,7 @@ def main() -> None:
 	game_over_sprites = game.game_over_sprites
 	pause_sprites = game.pause_sprites
 
-	print(f'\ngame loaded in {round(time() - start_time, 3)}s')
+	logger.info(f'\ngame initialised in {round(time() - start_time, 3)}s')
 	pygame.display.set_caption('Flappy Taco')
 	previous_time = time()
 
@@ -798,7 +832,6 @@ def main() -> None:
 			match event.type:
 
 				case pygame.QUIT:
-
 					game.quit()
 
 				case pygame.MOUSEBUTTONDOWN:
@@ -825,14 +858,7 @@ def main() -> None:
 								game.state = 'menu'
 
 							case 'menu':
-								
-								response = popup_window(
-									title = 'Quit',
-									description = 'Are you sure you want to quit the game?', 
-									perams = 4 | 0x20
-								)
-								to_quit = not (response - 6)
-								if to_quit: game.quit()
+								game.quit()
 
 				case game.fork_timer:
 
@@ -849,7 +875,7 @@ def main() -> None:
 							chillies.add(Chilli(speed = game.fork_speed, y_offset = y_offset, game = game))
 
 		# Background
-		screen.fill(BLACK)
+		screen.fill(COLOURS['black'])
 		background.draw(screen)
 
 		match game.state:

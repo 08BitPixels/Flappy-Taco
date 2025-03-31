@@ -3,6 +3,15 @@ import sys
 import toml
 import ctypes
 from textwrap import dedent
+import logs
+
+logger = logs.get_logger(file = 'assets.py') # get logger
+
+def resource_path(relative_path: str) -> str:
+
+	if getattr(sys, '_MEIPASS', False): path = os.path.join('_internal', relative_path)
+	else: path = relative_path
+	return path
 
 def popup_window(title: str, description: str, perams: int) -> int: # -> response
 
@@ -322,21 +331,22 @@ config = file_handler.config
 
 # Screen Setup
 WIDTH, HEIGHT = int(config['screen_setup']['width']), int(config['screen_setup']['height'])
-FPS = config['screen_setup']['FPS']
-VSYNC = int(config['screen_setup']['VSYNC'])
-
 CENTRE_X = int(WIDTH // 2)
 CENTRE_Y = int(HEIGHT // 2)
 
+FPS = config['screen_setup']['FPS']
+VSYNC = int(config['screen_setup']['VSYNC'])
+
 # Audio
-MUSIC_VOL = config['audio_volume']['music']
-SFX_VOL = config['audio_volume']['sfx']
+VOLUMES: dict[str, float] = config['audio_volume']
 
 # COLOURS
-YELLOW = '#ffd500'
-LIGHT_YELLOW = '#fff700'
-LIGHT_GREY = '#d4d4d4'
-WHITE = '#ffffff'
-BLACK = '#000000'
-RED = '#ff0000'
-GREEN = '#0ac900'
+COLOURS: dict[str, str] = {
+	'black': '#000000',
+	'light_grey': '#d4d4d4',
+	'white': '#ffffff',
+	'red': '#ff0000',
+	'green': '#0ac900',
+	'yellow': '#ffd500',
+	'light_yellow': '#fff700'
+}
