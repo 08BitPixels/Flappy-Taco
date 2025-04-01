@@ -5,7 +5,7 @@ import ctypes
 from textwrap import dedent
 import logs
 
-logger = logs.get_logger(file = 'assets.py') # get logger
+logger = logs.get_logger(name = 'assets.py') # get logger
 
 def resource_path(relative_path: str) -> str:
 
