@@ -18,7 +18,7 @@ from assets import (
 )
 
 # update.main() # check for updates
-logger = logs.get_logger(file = 'main.py') # get logger
+logger = logs.get_logger(name = 'main.py') # get logger
 logger.info('initialising program...')
 
 # PYGAME SETUP

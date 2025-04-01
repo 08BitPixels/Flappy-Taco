@@ -3,6 +3,11 @@ import datetime
 import os
 import sys
 
+def make_filter(name):
+	
+    def filter(record): return record['extra'].get('name') == name
+    return filter
+
 print('logger init')
 today = datetime.date.today().strftime('%d-%m-%y')
 data: dict[str, int | str] = {}
@@ -16,24 +21,27 @@ if not os.path.isdir(dir_path):
 os.makedirs(dir_path, exist_ok = True)
 runs = len(os.listdir(dir_path)) + 1
 
-def get_logger(file: str) -> logging.Logger:
+logger = logging.getLogger(name = __name__)
+logging.basicConfig(
 
-	logger = logging.getLogger(name = file)
-	logging.basicConfig(
+	filename = os.path.join(dir_path, f'{runs}.log'), 
+	datefmt = '%H:%M:%S',
+	level = logging.DEBUG
 
-		filename = os.path.join(dir_path, f'{runs}.log'), 
-		format = f'[%(asctime)s] [{file}]/%(levelname)s]: %(message)s', 
-		datefmt = '%H:%M:%S',
-		level = logging.DEBUG
+)
 
-	)
-	logger.info('logger initialised')
-
-	def exception(exc_type, exc_value, exc_traceback):
+def exception(exc_type, exc_value, exc_traceback):
 	
-		sys.__excepthook__(exc_type, exc_value, exc_traceback)
-		logger.critical('\n\n', exc_info = (exc_type, exc_value, exc_traceback))
+	sys.__excepthook__(exc_type, exc_value, exc_traceback)
+	logger.critical('\n\n', exc_info = (exc_type, exc_value, exc_traceback))
+
+sys.excepthook = exception
+
+def get_logger(name: str) -> logging.Logger:
 	
-	sys.excepthook = exception
+	logger.add(format = f'[%(asctime)s] [{name}]/%(levelname)s]: %(message)s', filter = make_filter(name))
+	
+	new_logger = logger.bind(name = name)
+	logger.info(f'"{name}" logger initialised')
 
 	return logger
