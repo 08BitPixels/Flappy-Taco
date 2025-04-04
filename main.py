@@ -3,23 +3,32 @@ from time import time
 
 import pygame
 
-# import update
+import assets
 import logs
-from assets import (
-	WIDTH, HEIGHT,
-	CENTRE_X, CENTRE_Y,
-	FPS, VSYNC,
-	VOLUMES,
-	COLOURS,
-	file_handler,
-	popup_window,
-	resource_path,
-	splashscreen_size
-)
+import file_config
+# import update
 
-# update.main() # check for updates
+# ORDER OF MODULE INITIALISATION	
+# 1. assets.py 		-> main funcs + constant vars
+# 2. logs.py   		-> initialise logging for program
+# 3. update.py 		-> check for updates
+# 4. file_config.py -> retreive config + user data
+# 5. main.py   		-> run game
+
+# logging
 logger = logs.get_logger(name = 'main.py') # get logger
 logger.info('initialising program...')
+
+# updates
+# update.main() # check for updates
+
+# assets
+file_handler, CONSTANTS, USER_DATA = file_config.init()
+WIDTH, HEIGHT = CONSTANTS['screen_dimensions']
+CENTRE_X, CENTRE_Y = CONSTANTS['centre_coords']
+FPS, VSYNC = CONSTANTS['FPS'], CONSTANTS['VSYNC']
+VOLUMES = CONSTANTS['volumes']
+COLOURS = CONSTANTS['colours']
 
 # PYGAME SETUP
 pygame.init()
@@ -27,19 +36,19 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED if VSYNC else 0,
 clock = pygame.time.Clock()
 
 # Window Setup
-pygame.display.set_icon(pygame.image.load(resource_path('images/icon.ico')).convert_alpha())
+pygame.display.set_icon(pygame.image.load(assets.resource_path('images/icon.ico')).convert_alpha())
 pygame.display.set_caption('Flappy Taco | INITIALISING...')
 screen.fill('#202020')
 
 # Splashscreen
-splashscreen = pygame.image.load(resource_path('images/splashscreen.png')).convert_alpha()
-splashscreen = pygame.transform.scale(splashscreen, splashscreen_size(img_size = splashscreen.get_size(), screen_size = (WIDTH, HEIGHT))).convert_alpha()
+splashscreen = pygame.image.load(assets.resource_path('images/splashscreen.png')).convert_alpha()
+splashscreen = pygame.transform.scale(splashscreen, assets.splashscreen_size(img_size = splashscreen.get_size(), screen_size = (WIDTH, HEIGHT))).convert_alpha()
 screen.blit(splashscreen, splashscreen.get_rect(center = (CENTRE_X, CENTRE_Y)))
 pygame.display.update()
 
 # Fonts
-main_font = pygame.font.Font(resource_path('fonts/slkscrb.ttf'), size = 50)
-secondary_font = pygame.font.Font(resource_path('fonts/slkscr.ttf'), size = 30)
+main_font = pygame.font.Font(assets.resource_path('fonts/slkscrb.ttf'), size = 50)
+secondary_font = pygame.font.Font(assets.resource_path('fonts/slkscr.ttf'), size = 30)
 
 class Game:
 
@@ -49,7 +58,7 @@ class Game:
 		self.started = False
 		self.paused = False
 		self.score = 0
-		self.high_score = file_handler.user_data['high_score']
+		self.high_score = USER_DATA['high_score']
 
 		# Fork Settings
 		self.fork_speed = 400
@@ -58,19 +67,19 @@ class Game:
 		# Audio
 		logger.info('initialising audio')
 
-		self.MUSIC = pygame.mixer.Sound(resource_path('audio/music/raining-tacos.mp3'))
+		self.MUSIC = pygame.mixer.Sound(assets.resource_path('audio/music/raining-tacos.mp3'))
 		self.MUSIC.set_volume(VOLUMES['music'])
 
 		self.SFX: dict[str, dict[str, pygame.mixer.Sound]] = {
 			'chilli': {
-				'collect': pygame.mixer.Sound(resource_path('audio/sfx/chilli/collect.mp3')),
+				'collect': pygame.mixer.Sound(assets.resource_path('audio/sfx/chilli/collect.mp3')),
 			},
 			'player': {
-				'death': pygame.mixer.Sound(resource_path('audio/sfx/player/death.mp3')),
-				'jump': pygame.mixer.Sound(resource_path('audio/sfx/player/jump.wav'))
+				'death': pygame.mixer.Sound(assets.resource_path('audio/sfx/player/death.mp3')),
+				'jump': pygame.mixer.Sound(assets.resource_path('audio/sfx/player/jump.wav'))
 			},
 			'button': {
-				'click': pygame.mixer.Sound(resource_path('audio/sfx/button/click.wav'))
+				'click': pygame.mixer.Sound(assets.resource_path('audio/sfx/button/click.wav'))
 			}
 		}
 		
@@ -160,7 +169,7 @@ class Game:
 
 		logger.info('quit requested, confirming...')
 
-		response = popup_window(
+		response = assets.popup_window(
 			title = 'Quit',
 			description = 'Are you sure you want to quit the game?', 
 			perams = 4 | 0x20
@@ -169,7 +178,7 @@ class Game:
 
 		if to_quit:
 
-			config: dict[str, dict[str, int | float]] = {
+			config: file_config.ConfigDict = {
 				'screen_setup': {
 					'width': WIDTH,
 					'height': HEIGHT,
@@ -181,9 +190,9 @@ class Game:
 					'sfx': VOLUMES['sfx']
 				}
 			}
-			user_data: dict[str, int] = {
+			user_data: file_config.UserDataDict = {
 				'high_score': self.high_score, 
-				'costume_index': self.player.sprite.image_index
+				'costume_index': (0, 1, 2, 3, 4, 5, 6, 7)[self.player.sprite.image_index]
 			}
 
 			file_handler.save_data(mode = 0, data = config)
@@ -212,21 +221,21 @@ class Text:
 		self.fps_text2_rect = self.fps_text2.get_rect(topleft = (0, 0))
 
 		# Menu Screen
-		self.menu_txt1 = pygame.image.load(resource_path('images/text/flappy.png')).convert_alpha()
+		self.menu_txt1 = pygame.image.load(assets.resource_path('images/text/flappy.png')).convert_alpha()
 		self.menu_txt1 = pygame.transform.scale_by(self.menu_txt1, 0.25)
 		self.menu_txt1_rect = self.menu_txt1.get_rect(topleft = (100, 100))
 
-		self.menu_txt2 = pygame.image.load(resource_path('images/text/taco!.png')).convert_alpha()
+		self.menu_txt2 = pygame.image.load(assets.resource_path('images/text/taco!.png')).convert_alpha()
 		self.menu_txt2 = pygame.transform.scale_by(self.menu_txt2, 0.4)
 		self.menu_txt2_rect = self.menu_txt2.get_rect(center = (CENTRE_X, CENTRE_Y - 50))
 
 		# Control Screen
-		self.control_txt1 = pygame.image.load(resource_path('images/text/help.png')).convert_alpha()
+		self.control_txt1 = pygame.image.load(assets.resource_path('images/text/help.png')).convert_alpha()
 		self.control_txt1 = pygame.transform.scale(self.control_txt1, (WIDTH, HEIGHT))
 		self.control_txt1_rect = self.control_txt1.get_rect(center = (CENTRE_X, CENTRE_Y))
 
 		# Game Over Screen
-		self.over_txt1 = pygame.image.load(resource_path('images/text/game-over.png')).convert_alpha()
+		self.over_txt1 = pygame.image.load(assets.resource_path('images/text/game-over.png')).convert_alpha()
 		self.over_txt1 = pygame.transform.scale_by(self.over_txt1, 0.25)
 		self.over_txt1_rect = self.over_txt1.get_rect(center = (CENTRE_X, CENTRE_Y - 150))
 
@@ -243,7 +252,7 @@ class Text:
 		self.play_txt1 = main_font.render('Click to Begin', False, COLOURS['light_yellow'])
 		self.play_txt1_rect = self.play_txt1.get_rect(center = (CENTRE_X, CENTRE_Y - 100))
 
-		self.play_txt2 = pygame.image.load(resource_path('images/text/paused.png')).convert_alpha()
+		self.play_txt2 = pygame.image.load(assets.resource_path('images/text/paused.png')).convert_alpha()
 		self.play_txt2 = pygame.transform.scale_by(self.play_txt2, 0.3)
 		self.play_txt2_rect = self.play_txt2.get_rect(center = (CENTRE_X, CENTRE_Y - 120))
 
@@ -266,7 +275,7 @@ class Text:
 		self.chilli_energy_txt_rect = self.chilli_energy_txt.get_rect(topleft = (0, 0))
 
 		# Choose Taco Screen
-		self.choose_taco_txt1 = pygame.image.load(resource_path('images/text/choose-costume.png')).convert_alpha()
+		self.choose_taco_txt1 = pygame.image.load(assets.resource_path('images/text/choose-costume.png')).convert_alpha()
 		self.choose_taco_txt1 = pygame.transform.scale_by(self.choose_taco_txt1, 0.3)
 		self.choose_taco_txt1_rect = self.choose_taco_txt1.get_rect(center = (CENTRE_X, 75))
 
@@ -405,9 +414,9 @@ class Player(pygame.sprite.Sprite):
 		super().__init__()
 		self.game = game
 
-		self.images = [pygame.transform.scale_by(pygame.image.load(resource_path(f'images/player/taco{i}.png')).convert_alpha(), 0.3) for i in range(7)]
+		self.images = [pygame.transform.scale_by(pygame.image.load(assets.resource_path(f'images/player/taco{i}.png')).convert_alpha(), 0.3) for i in range(7)]
 
-		self.image_index = file_handler.user_data['costume_index']
+		self.image_index = int(USER_DATA['costume_index'])
 		self.image = self.images[self.image_index]
 		self.mask = pygame.mask.from_surface(self.images[0])
 
@@ -505,7 +514,7 @@ class Fork(pygame.sprite.Sprite):
 
 		super().__init__()
 
-		self.image = pygame.image.load(resource_path('images/fork/fork.png')).convert_alpha()
+		self.image = pygame.image.load(assets.resource_path('images/fork/fork.png')).convert_alpha()
 		self.image = pygame.transform.scale_by(self.image, 1.5)
 
 		if orientation == 'up':
@@ -549,7 +558,7 @@ class Chilli(pygame.sprite.Sprite):
 		super().__init__()
 		self.game = game
 
-		self.chilli = pygame.image.load(resource_path('images/chilli/chilli.png')).convert_alpha()
+		self.chilli = pygame.image.load(assets.resource_path('images/chilli/chilli.png')).convert_alpha()
 		self.chilli = pygame.transform.scale_by(self.chilli, 1.25)
 		self.collect = main_font.render('+100', False, COLOURS['light_yellow'], COLOURS['black'])
 
@@ -590,7 +599,7 @@ class Background(pygame.sprite.Sprite):
 
 		super().__init__()
 
-		self.image = pygame.image.load(resource_path('images/background/stars.png')).convert_alpha()
+		self.image = pygame.image.load(assets.resource_path('images/background/stars.png')).convert_alpha()
 		self.image = pygame.transform.scale(self.image, (WIDTH, HEIGHT))
 		self.rect = self.image.get_rect(center = (x_pos, CENTRE_Y))
 		self.pos = pygame.math.Vector2(self.rect.center)
@@ -614,11 +623,11 @@ class Button(pygame.sprite.Sprite):
 		super().__init__()
 		self.game = game
 
-		self.default = pygame.image.load(resource_path(f'images/button/{type}/{type}.png')).convert_alpha()
+		self.default = pygame.image.load(assets.resource_path(f'images/button/{type}/{type}.png')).convert_alpha()
 
 		if animation_type == 'slide':
 
-			self.select = pygame.image.load(resource_path(f'images/button/{type}/{type}-select.png')).convert_alpha()
+			self.select = pygame.image.load(assets.resource_path(f'images/button/{type}/{type}-select.png')).convert_alpha()
 			self.frames = [self.default, self.select]
 			self.state = 0
 			self.image = self.frames[self.state]
@@ -705,8 +714,7 @@ class Button(pygame.sprite.Sprite):
 
 			case 'next-costume': 
 
-				self.game.player.sprite.image_index += 1
-				if self.game.player.sprite.image_index >= len(self.game.player.sprite.images): self.game.player.sprite.image_index = 0
+				self.game.player.sprite.image_index = (self.game.player.sprite.image_index + 1) % len(self.game.player.sprite.images)
 
 			case 'last-costume':
 
@@ -736,7 +744,7 @@ class Intro_Sprite(pygame.sprite.Sprite):
 		
 		if type == 'rays':
 
-			self.og_image = pygame.image.load(resource_path('images/intro-sprite/god-rays.png')).convert_alpha()
+			self.og_image = pygame.image.load(assets.resource_path('images/intro-sprite/god-rays.png')).convert_alpha()
 			self.og_image = pygame.transform.scale_by(self.og_image, 0.75).convert_alpha()
 			self.image = self.og_image
 			self.rect = self.image.get_rect(center = pos)
@@ -783,7 +791,7 @@ class Menu_Background(pygame.sprite.Sprite):
 
 		super().__init__()
 
-		self.image = pygame.image.load(resource_path('images/game-over-menu/game-over-menu.png')).convert_alpha()
+		self.image = pygame.image.load(assets.resource_path('images/game-over-menu/game-over-menu.png')).convert_alpha()
 		self.image = pygame.transform.scale_by(self.image, 0.3)
 		self.rect = self.image.get_rect(midbottom = pos)
 		self.pos = pygame.math.Vector2(self.rect.center)

@@ -6,8 +6,8 @@ import sys
 LOG_FORMAT = '[%(asctime)s] [%(name)s/ %(funcName)s] [%(levelname)s]: %(message)s'
 TIME_FORMAT = '%H:%M:%S'
 TODAY = datetime.date.today().strftime('%d-%m-%y')
-data: dict[str, int | str] = {}
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
+data: dict[str, int | str] = {}
 
 def save_path(relative_path: str) -> str:
 

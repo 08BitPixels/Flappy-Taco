@@ -6,10 +6,8 @@ import os
 import subprocess
 
 from textwrap import dedent
-from assets import popup_window
 
-CURRENT_VERSION = 'v1.2.0'
-API_URL = 'https://api.github.com/repos/08BitPixels/Flappy-Taco/releases/latest'
+from assets import CURRENT_VERSION, API_URL, popup_window
 
 def check_update() -> tuple[bool, str]: # -> update available, latest version
 
@@ -87,7 +85,7 @@ def update(latest_version: str) -> None:
 		
 		ctypes.windll.user32.MessageBoxW(0, f'Error during request fetch: {response.status_code}', 'Error', 0)
 
-def main() -> None:
+def init() -> None:
 
 	update_available, latest_version = check_update()
 
@@ -103,4 +101,4 @@ def main() -> None:
 		to_update = not (response - 6)
 		if to_update: update(latest_version)
 
-if __name__ == '__main__': main()
+if __name__ == '__main__': init()
