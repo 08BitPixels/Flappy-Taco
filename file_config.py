@@ -2,14 +2,43 @@ import os
 import toml
 import ctypes
 from textwrap import dedent
-from typing import TypedDict, Literal
+from typing import TypedDict, Literal, get_type_hints
 
 from assets import EXE, WORKING_DIR, SAVE_DIR, CONFIG_PATH, USER_DATA_PATH
 import logs
 
 logger = logs.get_logger(file = __file__) # get logger
 
-# Config Dictionary type annotation
+def validate_typeddict(data: dict, typed_dict: type, ranges: dict = {}) -> None:
+
+	type_hints = get_type_hints(typed_dict)
+
+	for key, expected_type in type_hints.items():
+
+		if hasattr(expected_type, '__bases__') and expected_type.__bases__[0] is dict: 
+			validate_typeddict(data = data[key], typed_dict = expected_type, ranges = ranges[key])
+
+		else:
+
+			if key not in data:
+				raise KeyError(f'Missing key for type {typed_dict}: {key}')
+			
+			if expected_type is Literal[0, 1] or expected_type is Literal[0, 1, 2, 3, 4, 5, 6, 7]:
+				expected_type = int
+			
+			if expected_type is float:
+				if type(data[key]) is int:
+					data[key] = float(data[key])
+
+			if type(data[key]) is not expected_type:
+				raise TypeError(f'invalid config value [{data[key]}], for key "{key}"; expected type {expected_type}, got type {type(data[key])}')
+		
+			if ranges and key in ranges:
+				if len(ranges[key]) == 1: min, max = ranges[key][0], None
+				else: min, max = ranges[key]
+				if min > data[key] or (max and data[key] > max):
+					raise ValueError(f'invalid config value [{data[key]}], for key "{key}"; expected range {min} <= value <= {max}')
+
 class ScreenSetupDict(TypedDict):
 		
 	width: int
@@ -21,6 +50,16 @@ class VolumeDict(TypedDict):
 
 	music: float
 	sfx: float
+
+class ColoursDict(TypedDict):
+
+	black: str | tuple[int, int, int]
+	light_grey: str | tuple[int, int, int]
+	white: str | tuple[int, int, int]
+	red: str | tuple[int, int, int]
+	green: str | tuple[int, int, int]
+	yellow: str | tuple[int, int, int]
+	light_yellow: str | tuple[int, int, int]
 
 class ConfigDict(TypedDict):
 
@@ -36,16 +75,10 @@ class OldConfigDict(TypedDict):
 	MUSIC_VOL: float
 	SFX_VOL: float
 
-# Constants Dictionary type annotation
-class ColoursDict(TypedDict):
+class UserDataDict(TypedDict):
 
-	black: str | tuple[int, int, int]
-	light_grey: str | tuple[int, int, int]
-	white: str | tuple[int, int, int]
-	red: str | tuple[int, int, int]
-	green: str | tuple[int, int, int]
-	yellow: str | tuple[int, int, int]
-	light_yellow: str | tuple[int, int, int]
+	high_score: int
+	costume_index: Literal[0, 1, 2, 3, 4, 5, 6, 7]
 
 class ConstantsDict(TypedDict):
 
@@ -55,12 +88,6 @@ class ConstantsDict(TypedDict):
 	VSYNC: Literal[0, 1]
 	volumes: VolumeDict
 	colours: ColoursDict
-
-# User Data Dictionary type annotation
-class UserDataDict(TypedDict):
-
-	high_score: int
-	costume_index: Literal[0, 1, 2, 3, 4, 5, 6, 7]
 
 # File Handler Object
 class FileHandler:
@@ -138,51 +165,20 @@ class FileHandler:
 			config = toml.load(file)
 			file.close()
 
-			for key, value in config.items():
-
-				if key == 'screen_setup':
-
-					for key2, value2 in config['screen_setup'].items():
-
-						if key2 == 'width':
-							if isinstance(value2, int): 
-								config['screen_setup']['width'] = int(value2)
-							else:
-								raise ValueError(f'invalid config value "{value2}" for key "{key2}" of config file; must be type {type(config['screen_setup']['width'])}')
-						
-						elif key2 == 'height':
-							if isinstance(value2, int): 
-								config['screen_setup']['height'] = int(value2)
-							else:
-								raise ValueError(f'invalid config value "{value2}" for key "{key2}" of config file; must be type {type(config['screen_setup']['height'])}')
-						
-						elif key2 == 'FPS':
-							if isinstance(value2, int) and -1 <= value2: 
-								config['screen_setup']['FPS'] = value2
-							else:
-								raise ValueError(f'invalid config value "{value2}" for key "{key2}" of config file; must be type {type(config['screen_setup']['FPS'])}; must be greater than -1')
-						
-						elif key2 == 'VSYNC':
-							if isinstance(value2, int) and value2 in (0, 1): 
-								config['screen_setup']['FPS'] = value2
-							else:
-								raise ValueError(f'invalid config value "{value2}" for key "{key2}" of config file; must be type {type(config['screen_setup']['VSYNC'])}; must be either 0 or 1')
-
-				if key == 'audio_volume':
-
-					for key2, value2 in config['audio_volume'].items():
-
-						if key2 == 'music':
-							if isinstance(value2, int | float) and 0 <= value2 <= 1: 
-								config['audio_volume']['music'] = float(value2)
-							else:
-								raise ValueError(f'invalid config value "{value2}" for key "{key2}" of config file; must be type {type(config['audio_volume']['music'])}; must be between 0 and 1')
-						
-						elif key2 == 'sfx':
-							if isinstance(value2, int | float) and 0 <= value2 <= 1: 
-								config['audio_volume']['sfx'] = float(value2)
-							else:
-								raise ValueError(f'invalid config value "{value2}" for key "{key2}" of config file; must be type {type(config['audio_volume']['sfx'])}; must be between 0 and 1')
+			validate_typeddict(
+				data = dict(config),
+				typed_dict = ConfigDict,
+				ranges = {
+					'screen_setup': {
+						'FPS': [-1],
+						'VSYNC': (0, 1),
+					},
+					'audio_volume': {
+						'music': (0.0, 1.0),
+						'sfx': (0.0, 1.0)
+					}
+				}
+			)
 
 		else:
 
@@ -202,25 +198,14 @@ class FileHandler:
 			file = open(USER_DATA_PATH, 'r') 
 			user_data = toml.load(file)
 			file.close()
-
-			for key, value in user_data.items():
-
-				match key:
-
-					case 'high_score':
-						if isinstance(value, int): 
-							user_data['high_score'] = value
-						else: 
-							raise ValueError(f'invalid config value "{value}" for key "{key}" of user data file {USER_DATA_PATH}; must be type {type(user_data[key])}')
-						
-					case 'costume_index':
-						if isinstance(value, int) and value in (0, 1, 2, 3, 4, 5, 6, 7):
-							user_data['costume_index'] = (0, 1, 2, 3, 4, 5, 6, 7)[value]
-						else: 
-							raise ValueError(f'invalid config value "{value}" for key "{key}" of user data file {USER_DATA_PATH}; must be type {type(user_data[key])}: must be either 0, 1, 2, 3, 4, 5, 6 or 7')
-						
-					case _:
-						raise ValueError(f'invalid config key "{key}" of user data file {USER_DATA_PATH}; must be one of {user_data.keys()}')
+			validate_typeddict(
+				data = dict(user_data),
+				typed_dict = UserDataDict,
+				ranges = {
+					'high_score': [0],
+					'costume_index': (0, 7)
+				}
+			)
 
 		else:
 
@@ -342,7 +327,7 @@ class FileHandler:
 						raise ValueError(f'invalid config value "{value}" for key "{key}" of config file {path}; must be type {type(old_config[key])}: must be larger than -1')
 
 				case 'VSYNC': 
-					if value.isdecimal() and value in (0, 1): 
+					if value.isdecimal() and int(value) in (0, 1): 
 						old_config['VSYNC'] = (0, 1)[int(value)]
 					else: 
 						raise ValueError(f'invalid config value "{value}" for key "{key}" of config file {path}; must be type {type(old_config[key])}: must be either 0 or 1')

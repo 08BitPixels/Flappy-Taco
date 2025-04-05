@@ -4,7 +4,7 @@ import os
 import sys
 from assets import save_path, EXE, LOGS_DIR
 
-LOG_FORMAT = '[%(asctime)s] [%(name)s] [%(levelname)s]: %(message)s'
+LOG_FORMAT = '[%(asctime)s.%(msecs)05d] [%(name)s] [%(levelname)s]: %(message)s'
 TIME_FORMAT = '%H:%M:%S'
 TODAY = datetime.date.today().strftime('%d-%m-%y')
 data: dict[str, int | str] = {}

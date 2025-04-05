@@ -1,12 +1,13 @@
 from random import randint
 from time import time
+from typing import TypedDict, Literal
 
 import pygame
 
 import assets
 import logs
-import file_config
 # import update
+import file_config
 
 # ORDER OF MODULE INITIALISATION	
 # 1. assets.py 		-> main funcs + constant vars
@@ -17,7 +18,7 @@ import file_config
 
 # logging
 logger = logs.get_logger(file = __file__) # get logger
-logger.info('initialising program...')
+logger.info('initialising game...')
 
 # updates
 # update.main() # check for updates
@@ -29,48 +30,86 @@ CENTRE_X, CENTRE_Y = CONSTANTS['centre_coords']
 FPS, VSYNC = CONSTANTS['FPS'], CONSTANTS['VSYNC']
 VOLUMES = CONSTANTS['volumes']
 COLOURS = CONSTANTS['colours']
+logger.info('constants imported')
 
 # PYGAME SETUP
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED if VSYNC else 0, vsync = VSYNC)
 clock = pygame.time.Clock()
+logger.info('pygame initialised: screen and clock objects created')
 
 # Window Setup
-pygame.display.set_icon(pygame.image.load(assets.resource_path('images/icon.ico')).convert_alpha())
-pygame.display.set_caption('Flappy Taco | INITIALISING...')
-screen.fill('#202020')
-
-# Splashscreen
+icon = pygame.image.load(assets.resource_path('images/icon.ico')).convert_alpha()
 splashscreen = pygame.image.load(assets.resource_path('images/splashscreen.png')).convert_alpha()
 splashscreen = pygame.transform.scale(splashscreen, assets.splashscreen_size(img_size = splashscreen.get_size(), screen_size = (WIDTH, HEIGHT))).convert_alpha()
+
+pygame.display.set_icon(icon)
+pygame.display.set_caption('Flappy Taco | INITIALISING...')
 screen.blit(splashscreen, splashscreen.get_rect(center = (CENTRE_X, CENTRE_Y)))
 pygame.display.update()
 
 # Fonts
 main_font = pygame.font.Font(assets.resource_path('fonts/slkscrb.ttf'), size = 50)
 secondary_font = pygame.font.Font(assets.resource_path('fonts/slkscr.ttf'), size = 30)
+logger.info('fonts loaded')
 
+# Typed Dictionaries
+# SFX
+class ChilliSFXDict(TypedDict):
+	collect: pygame.mixer.Sound
+
+class PlayerSFXDict(TypedDict):
+	death: pygame.mixer.Sound
+	jump: pygame.mixer.Sound
+
+class ButtonSFXDict(TypedDict):
+	click: pygame.mixer.Sound
+
+class SFXDict(TypedDict):
+	chilli: ChilliSFXDict
+	player: PlayerSFXDict
+	button: ButtonSFXDict
+
+# Game States
+class GameStatesDict(TypedDict):
+	menu: Literal[0]
+	help: Literal[1]
+	choose_taco: Literal[2]
+	play: Literal[3]
+	over: Literal[4]
+
+# Sprites
 class Game:
 
-	def __init__(self) -> None:
-		
-		self.state = 'menu'
-		self.started = False
-		self.paused = False
-		self.score = 0
-		self.high_score = USER_DATA['high_score']
+	STATES: GameStatesDict = {
+		'menu': 0,
+		'help': 1,
+		'choose_taco': 2,
+		'play': 3,
+		'over': 4
+	}
 
-		# Fork Settings
-		self.fork_speed = 400
-		self.fork_count = 5
+	# Fork Settings
+	_FORK_SPEED = 400
+	_FORK_COUNT = 5
+	_FORK_FREQUENCY = 1000
+	# Timers
+	CHILLI_FREQUENCY = 1
+	FORK_TIMER = pygame.USEREVENT + 1
+
+	def __init__(self, user_data: file_config.UserDataDict) -> None:
+		
+		self._state: Literal[0, 1, 2, 3, 4] = self.STATES['menu']
+		self._started = False
+		self._paused = False
+		self.score = 0
+		self.high_score: int = user_data['high_score']
 
 		# Audio
-		logger.info('initialising audio')
+		self._MUSIC = pygame.mixer.Sound(assets.resource_path('audio/music/raining-tacos.mp3'))
+		self._MUSIC.set_volume(VOLUMES['music'])
 
-		self.MUSIC = pygame.mixer.Sound(assets.resource_path('audio/music/raining-tacos.mp3'))
-		self.MUSIC.set_volume(VOLUMES['music'])
-
-		self.SFX: dict[str, dict[str, pygame.mixer.Sound]] = {
+		self.SFX: SFXDict = {
 			'chilli': {
 				'collect': pygame.mixer.Sound(assets.resource_path('audio/sfx/chilli/collect.mp3')),
 			},
@@ -85,9 +124,8 @@ class Game:
 		
 		logger.info('audio initialised')
 
-		logger.info('initialising sprites...')
 		self.text = Text(self)
-		self.player = pygame.sprite.GroupSingle(Player(game = self))
+		self.player = pygame.sprite.GroupSingle(Player(game = self, user_data = user_data))
 		self.forks: pygame.sprite.Group = pygame.sprite.Group()
 		self.chillies: pygame.sprite.Group = pygame.sprite.Group()
 		self.background = pygame.sprite.Group(
@@ -95,46 +133,66 @@ class Game:
 			Background(CENTRE_X + WIDTH)
 		)
 		self.menu_sprites = pygame.sprite.Group(
-			Intro_Sprite(type = 'rays', pos = (CENTRE_X + 150, CENTRE_Y + 215), game = self),
-			Intro_Sprite(type = 'taco', pos = (CENTRE_X + 150, CENTRE_Y + 225), game = self),
-			Button(type = 'play', pos = (120, CENTRE_Y + 120), animation_type = 'slide', animation_offset = 25, press_state = 'play', game = self),
-			Button(type = 'help', pos = (WIDTH - 85, HEIGHT - 100), animation_type = 'float', animation_offset = 0.2, press_state = 'controls', game = self),
-			Button(type = 'choose-taco', pos = (147, HEIGHT - 100), animation_type = 'slide', animation_offset = 25, press_state = 'choose-taco', game = self)
+			IntroSprite(type = 'rays', pos = (CENTRE_X + 150, CENTRE_Y + 215), game = self),
+			IntroSprite(type = 'taco', pos = (CENTRE_X + 150, CENTRE_Y + 225), game = self),
+			Button(type = 'play', pos = (120, CENTRE_Y + 120), animation_type = 'slide', animation_offset = 25, press_state = self.STATES['play'], game = self),
+			Button(type = 'help', pos = (WIDTH - 85, HEIGHT - 100), animation_type = 'float', animation_offset = 0.2, press_state = self.STATES['help'], game = self),
+			Button(type = 'choose-taco', pos = (147, HEIGHT - 100), animation_type = 'slide', animation_offset = 25, press_state = self.STATES['choose_taco'], game = self)
 		)
 		self.choose_taco_sprites = pygame.sprite.Group(
-			Intro_Sprite(type = 'rays', pos = (CENTRE_X, CENTRE_Y + 10), game = self),
-			Button(type = 'ok!', pos = (CENTRE_X, CENTRE_Y + 250), animation_type = 'float', animation_offset = 0.2, press_state = 'menu', game = self),
+			IntroSprite(type = 'rays', pos = (CENTRE_X, CENTRE_Y + 10), game = self),
+			Button(type = 'ok!', pos = (CENTRE_X, CENTRE_Y + 250), animation_type = 'float', animation_offset = 0.2, press_state = self.STATES['menu'], game = self),
 			Button(type = 'arrow-left', pos = (CENTRE_X - 300, CENTRE_Y), animation_type = 'float', animation_offset = 0.4, press_state = 'last-costume', game = self),
 			Button(type = 'arrow-right', pos = (CENTRE_X + 300, CENTRE_Y), animation_type = 'float', animation_offset = 0.4, press_state = 'next-costume', game = self)
 		)
 		self.game_over_sprites = pygame.sprite.Group(
-			Menu_Background(pos = (CENTRE_X, 0), offset = HEIGHT // 2),
-			Button(type = 'try-again', pos = (CENTRE_X, CENTRE_Y + 60), animation_type = 'float', animation_offset = 0.2, press_state = 'play', game = self),
-			Button(type = 'main-menu', pos = (CENTRE_X, CENTRE_Y + 160), animation_type = 'float', animation_offset = 0.2, press_state = 'menu', game = self)
+			MenuBackground(pos = (CENTRE_X, 0), offset = HEIGHT // 2),
+			Button(type = 'try-again', pos = (CENTRE_X, CENTRE_Y + 60), animation_type = 'float', animation_offset = 0.2, press_state = self.STATES['play'], game = self),
+			Button(type = 'main-menu', pos = (CENTRE_X, CENTRE_Y + 160), animation_type = 'float', animation_offset = 0.2, press_state = self.STATES['menu'], game = self)
 		)
 		self.pause_sprites = pygame.sprite.Group(
-			Menu_Background(pos = (CENTRE_X, 0), offset = HEIGHT // 2),
+			MenuBackground(pos = (CENTRE_X, 0), offset = HEIGHT // 2),
 			Button(type = 'resume', pos = (CENTRE_X, CENTRE_Y + 50), animation_type = 'float', animation_offset = 0.2, press_state = 'unpause', game = self),
-			Button(type = 'main-menu', pos = (CENTRE_X, CENTRE_Y + 150), animation_type = 'float', animation_offset = 0.2, press_state = 'menu', game = self)
+			Button(type = 'main-menu', pos = (CENTRE_X, CENTRE_Y + 150), animation_type = 'float', animation_offset = 0.2, press_state = self.STATES['menu'], game = self)
 		)
 		logger.info('sprites inititalised')
 
 		# Timers
-		self.CHILLI_FREQUENCY = 1
-		self.FORK_FREQUENCY = 1000
-		self.fork_timer = pygame.USEREVENT + 1
-		pygame.time.set_timer(self.fork_timer, self.FORK_FREQUENCY)
+		pygame.time.set_timer(self.FORK_TIMER, self._FORK_FREQUENCY)
 
-		self.MUSIC.play(loops = -1)
+		self._MUSIC.play(loops = -1)
+	
+	@ property
+	def paused(self) -> bool:
+		return self._paused
+
+	@ paused.setter
+	def paused(self, paused: bool) -> None:
+		self._paused = paused
+
+	@ property
+	def state(self) -> Literal[0, 1, 2, 3, 4]:
+		return self._state
+
+	@ state.setter
+	def state(self, state: Literal[0, 1, 2, 3, 4]) -> None:
+		self._state = self.STATES[('menu', 'help', 'choose_taco', 'play', 'over')[state]]
+
+	def start(self) -> None:
+		self._started = True
+	
+	@ property
+	def started(self) -> bool:
+		return self._started
 
 	def chilli_collected(self) -> None:
 		self.player.sprite.chilli_energy += 200
 
 	def restart(self) -> None:
 
-		self.state = 'play'
-		self.started = False
-		self.paused = False
+		self.state = self.STATES['play']
+		self._started = False
+		self._paused = False
 		self.score = 0
 		self.player.sprite.reset()
 		self.forks.empty()
@@ -145,20 +203,7 @@ class Game:
 	def handle_game_over(self) -> None:
 
 		self.SFX['player']['death'].play()
-		self.state = 'over'
-
-	def add_forks(self) -> None:
-
-		for i in range(self.fork_count):
-
-			y_offset = randint(int(HEIGHT / 3), int(HEIGHT - HEIGHT / 3))
-
-			self.forks.add(
-				Fork(orientation = 'up', speed = self.fork_speed, offset = y_offset, game = self), 
-				Fork(orientation = 'down', speed = self.fork_speed, offset = y_offset, game = self)
-			)
-
-			if randint(0, self.CHILLI_FREQUENCY) == 0: self.chillies.add(Chilli(speed = self.fork_speed, y_offset = y_offset, game = self))
+		self.state = self.STATES['over']
 
 	def point(self) -> None:
 
@@ -289,48 +334,73 @@ class Text:
 		self.fps_text2 = secondary_font.render(str(fps), False, fps_colour, COLOURS['black'])
 		self.fps_text2_rect = self.fps_text2.get_rect(topleft = (75, 0))
 
-		match self.game.state:
+		state = self.game.state
 
-			case 'menu':
+		if state == self.game.STATES['menu']:
 
-				self.high_score_txt = main_font.render(str(self.game.high_score), False, COLOURS['white'], COLOURS['black'])
-				self.high_score_txt_rect = self.high_score_txt.get_rect(topright = (WIDTH, 30))
+			self.high_score_txt = main_font.render(str(self.game.high_score), False, COLOURS['white'], COLOURS['black'])
+			self.high_score_txt_rect = self.high_score_txt.get_rect(topright = (WIDTH, 30))
 
-				self.choose_taco_txt2 = main_font.render(self.game.player.sprite.costume_name(), False, COLOURS['light_yellow'], COLOURS['black'])
-				self.choose_taco_txt2_rect = self.choose_taco_txt2.get_rect(center = (CENTRE_X + 150, CENTRE_Y + 75))
+			self.choose_taco_txt2 = main_font.render(self.game.player.sprite.costume_name(), False, COLOURS['light_yellow'], COLOURS['black'])
+			self.choose_taco_txt2_rect = self.choose_taco_txt2.get_rect(center = (CENTRE_X + 150, CENTRE_Y + 75))
+
+			self.texts = [
+				(self.menu_txt1, self.menu_txt1_rect), 
+				(self.menu_txt2, self.menu_txt2_rect),
+				(self.play_txt5, self.play_txt5_rect),
+				(self.high_score_txt, self.high_score_txt_rect),
+				(self.fps_text1, self.fps_text1_rect),
+				(self.fps_text2, self.fps_text2_rect),
+				(self.choose_taco_txt2, self.choose_taco_txt2_rect)
+			]
+		
+		elif state == self.game.STATES['help']:
+
+			self.texts = [
+				(self.control_txt1, self.control_txt1_rect),
+			]
+
+		elif state == self.game.STATES['over']:
+
+			self.over_txt2 = secondary_font.render(f"Final Score: {self.game.score}", False, COLOURS['light_grey'], COLOURS['black'])
+			self.over_txt2_rect = self.over_txt2.get_rect(center = (CENTRE_X, CENTRE_Y - 40))
+
+			self.over_txt3 = secondary_font.render(f"HIGHSCORE: {self.game.high_score}", False, COLOURS['light_grey'], COLOURS['black'])
+			self.over_txt3_rect = self.over_txt3.get_rect(center = (CENTRE_X, CENTRE_Y - 10))
+
+			self.over_txt4 = secondary_font.render(f"You {self.game.player.sprite.death_cause}!", False, COLOURS['red'], COLOURS['black'])
+			self.over_txt4_rect = self.over_txt4.get_rect(center = (CENTRE_X, CENTRE_Y - 80))
+
+			self.texts = [
+				(self.over_txt1, self.over_txt1_rect),
+				(self.over_txt2, self.over_txt2_rect),
+				(self.over_txt3, self.over_txt3_rect),
+				(self.over_txt4, self.over_txt4_rect),
+				(self.play_txt4, self.play_txt4_rect),
+				(self.play_txt5, self.play_txt5_rect),
+				(self.play_txt6, self.play_txt6_rect),
+				(self.score_txt, self.score_txt_rect),
+				(self.high_score_txt, self.high_score_txt_rect),
+				(self.chilli_energy_txt, self.chilli_energy_txt_rect),
+				(self.fps_text1, self.fps_text1_rect),
+				(self.fps_text2, self.fps_text2_rect)
+			]
+
+		elif state == self.game.STATES['play']:
+
+			self.score_txt = main_font.render(str(self.game.score), False, COLOURS['white'], COLOURS['black'])
+			self.score_txt_rect = self.score_txt.get_rect(topright = (WIDTH, 110))
+
+			self.high_score_txt = main_font.render(str(self.game.high_score), False, COLOURS['white'], COLOURS['black'])
+			self.high_score_txt_rect = self.high_score_txt.get_rect(topright = (WIDTH, 30))
+
+			self.chilli_energy_txt = main_font.render(str(self.game.player.sprite.chilli_energy), False, COLOURS['light_yellow'], COLOURS['black'])
+			self.chilli_energy_txt_rect = self.chilli_energy_txt.get_rect(topleft = (0, 70))
+
+			if not self.game.started:
 
 				self.texts = [
-					(self.menu_txt1, self.menu_txt1_rect), 
-					(self.menu_txt2, self.menu_txt2_rect),
-					(self.play_txt5, self.play_txt5_rect),
-					(self.high_score_txt, self.high_score_txt_rect),
-					(self.fps_text1, self.fps_text1_rect),
-					(self.fps_text2, self.fps_text2_rect),
-					(self.choose_taco_txt2, self.choose_taco_txt2_rect)
-				]
-			
-			case 'controls':
-
-				self.texts = [
-					(self.control_txt1, self.control_txt1_rect),
-				]
-
-			case 'over':
-
-				self.over_txt2 = secondary_font.render(f"Final Score: {self.game.score}", False, COLOURS['light_grey'], COLOURS['black'])
-				self.over_txt2_rect = self.over_txt2.get_rect(center = (CENTRE_X, CENTRE_Y - 40))
-
-				self.over_txt3 = secondary_font.render(f"HIGHSCORE: {self.game.high_score}", False, COLOURS['light_grey'], COLOURS['black'])
-				self.over_txt3_rect = self.over_txt3.get_rect(center = (CENTRE_X, CENTRE_Y - 10))
-
-				self.over_txt4 = secondary_font.render(f"You {self.game.player.sprite.death_cause}!", False, COLOURS['red'], COLOURS['black'])
-				self.over_txt4_rect = self.over_txt4.get_rect(center = (CENTRE_X, CENTRE_Y - 80))
-
-				self.texts = [
-					(self.over_txt1, self.over_txt1_rect),
-					(self.over_txt2, self.over_txt2_rect),
-					(self.over_txt3, self.over_txt3_rect),
-					(self.over_txt4, self.over_txt4_rect),
+					(self.play_txt1, self.play_txt1_rect),
 					(self.play_txt4, self.play_txt4_rect),
 					(self.play_txt5, self.play_txt5_rect),
 					(self.play_txt6, self.play_txt6_rect),
@@ -341,89 +411,65 @@ class Text:
 					(self.fps_text2, self.fps_text2_rect)
 				]
 
-			case 'play':
+			elif self.game.started and self.game.paused:
 
-				self.score_txt = main_font.render(str(self.game.score), False, COLOURS['white'], COLOURS['black'])
-				self.score_txt_rect = self.score_txt.get_rect(topright = (WIDTH, 110))
-
-				self.high_score_txt = main_font.render(str(self.game.high_score), False, COLOURS['white'], COLOURS['black'])
-				self.high_score_txt_rect = self.high_score_txt.get_rect(topright = (WIDTH, 30))
-
-				self.chilli_energy_txt = main_font.render(str(self.game.player.sprite.chilli_energy), False, COLOURS['light_yellow'], COLOURS['black'])
-				self.chilli_energy_txt_rect = self.chilli_energy_txt.get_rect(topleft = (0, 70))
-
-				if not self.game.started:
-
-					self.texts = [
-						(self.play_txt1, self.play_txt1_rect),
-						(self.play_txt4, self.play_txt4_rect),
-						(self.play_txt5, self.play_txt5_rect),
-						(self.play_txt6, self.play_txt6_rect),
-						(self.score_txt, self.score_txt_rect),
-						(self.high_score_txt, self.high_score_txt_rect),
-						(self.chilli_energy_txt, self.chilli_energy_txt_rect),
-						(self.fps_text1, self.fps_text1_rect),
-						(self.fps_text2, self.fps_text2_rect)
-					]
-
-				elif self.game.started and self.game.paused:
-
-					self.texts = [
-						(self.play_txt2, self.play_txt2_rect),
-						(self.play_txt4, self.play_txt4_rect),
-						(self.play_txt5, self.play_txt5_rect),
-						(self.play_txt6, self.play_txt6_rect),
-						(self.score_txt, self.score_txt_rect),
-						(self.high_score_txt, self.high_score_txt_rect),
-						(self.chilli_energy_txt, self.chilli_energy_txt_rect),
-						(self.fps_text1, self.fps_text1_rect),
-						(self.fps_text2, self.fps_text2_rect)	
-					]
-
-				else:
-
-					self.texts = [
-						(self.play_txt4, self.play_txt4_rect),
-						(self.play_txt5, self.play_txt5_rect),
-						(self.play_txt6, self.play_txt6_rect),
-						(self.score_txt, self.score_txt_rect),
-						(self.high_score_txt, self.high_score_txt_rect),
-						(self.chilli_energy_txt, self.chilli_energy_txt_rect),
-						(self.fps_text1, self.fps_text1_rect),
-						(self.fps_text2, self.fps_text2_rect)
-					]
-
-			case 'choose-taco':
-
-				self.choose_taco_txt2 = main_font.render(self.game.player.sprite.costume_name(), False, COLOURS['light_yellow'], COLOURS['black'])
-				self.choose_taco_txt2_rect = self.choose_taco_txt2.get_rect(center = (CENTRE_X, CENTRE_Y - 150))
-			
 				self.texts = [
-					(self.choose_taco_txt1, self.choose_taco_txt1_rect),
-					(self.choose_taco_txt2, self.choose_taco_txt2_rect),
+					(self.play_txt2, self.play_txt2_rect),
+					(self.play_txt4, self.play_txt4_rect),
+					(self.play_txt5, self.play_txt5_rect),
+					(self.play_txt6, self.play_txt6_rect),
+					(self.score_txt, self.score_txt_rect),
+					(self.high_score_txt, self.high_score_txt_rect),
+					(self.chilli_energy_txt, self.chilli_energy_txt_rect),
+					(self.fps_text1, self.fps_text1_rect),
+					(self.fps_text2, self.fps_text2_rect)	
+				]
+
+			else:
+
+				self.texts = [
+					(self.play_txt4, self.play_txt4_rect),
+					(self.play_txt5, self.play_txt5_rect),
+					(self.play_txt6, self.play_txt6_rect),
+					(self.score_txt, self.score_txt_rect),
+					(self.high_score_txt, self.high_score_txt_rect),
+					(self.chilli_energy_txt, self.chilli_energy_txt_rect),
 					(self.fps_text1, self.fps_text1_rect),
 					(self.fps_text2, self.fps_text2_rect)
 				]
 
-			case _: self.texts.clear()
+		elif state == self.game.STATES['choose_taco']:
+
+			self.choose_taco_txt2 = main_font.render(self.game.player.sprite.costume_name(), False, COLOURS['light_yellow'], COLOURS['black'])
+			self.choose_taco_txt2_rect = self.choose_taco_txt2.get_rect(center = (CENTRE_X, CENTRE_Y - 150))
+		
+			self.texts = [
+				(self.choose_taco_txt1, self.choose_taco_txt1_rect),
+				(self.choose_taco_txt2, self.choose_taco_txt2_rect),
+				(self.fps_text1, self.fps_text1_rect),
+				(self.fps_text2, self.fps_text2_rect)
+			]
+
+		else:
+			self.texts.clear()
 
 class Player(pygame.sprite.Sprite):
 
-	def __init__(self, game: Game) -> None:
+	def __init__(self, user_data: file_config.UserDataDict, game: Game) -> None:
 
 		super().__init__()
 		self.game = game
 
 		self.images = [pygame.transform.scale_by(pygame.image.load(assets.resource_path(f'images/player/taco{i}.png')).convert_alpha(), 0.3) for i in range(7)]
 
-		self.image_index = int(USER_DATA['costume_index'])
+		self.image_index = int(user_data['costume_index'])
 		self.image = self.images[self.image_index]
 		self.mask = pygame.mask.from_surface(self.images[0])
 
 		self.rect = self.images[0].get_rect(center = (CENTRE_X - 200, CENTRE_Y))
 		self.pos = pygame.math.Vector2(self.rect.center)
 
-		self.SFX = self.game.SFX['player']
+		self.SFX: PlayerSFXDict = self.game.SFX['player']
 		self.SFX['jump'].set_volume(2 * VOLUMES['sfx'])
 
 		self.GRAVITY = 3000
@@ -566,7 +612,7 @@ class Chilli(pygame.sprite.Sprite):
 		self.rect = self.image.get_rect(center = (WIDTH + 50, y_offset))
 		self.pos = pygame.math.Vector2(self.rect.center)
 
-		self.SFX = self.game.SFX['chilli']
+		self.SFX: ChilliSFXDict = self.game.SFX['chilli']
 		self.SFX['collect'].set_volume(5 * VOLUMES['sfx'])
 
 		self.speed = speed
@@ -618,7 +664,7 @@ class Background(pygame.sprite.Sprite):
 
 class Button(pygame.sprite.Sprite):
 
-	def __init__(self, type: str, pos: tuple, animation_type: str, animation_offset: int | float, press_state: str, game: Game) -> None:
+	def __init__(self, type: str, pos: tuple, animation_type: str, animation_offset: int | float, press_state: Literal[0, 1, 2, 3, 4, 'next-costume', 'last-costume', 'unpause'], game: Game) -> None:
 
 		super().__init__()
 		self.game = game
@@ -640,7 +686,7 @@ class Button(pygame.sprite.Sprite):
 		self.rect = self.image.get_rect(center = pos)
 		self.pos = pygame.math.Vector2(self.rect.center)
 
-		self.SFX = self.game.SFX['button']
+		self.SFX: ButtonSFXDict = self.game.SFX['button']
 		self.SFX['click'].set_volume(0.25 * VOLUMES['sfx'])
 
 		self.type = type
@@ -704,25 +750,23 @@ class Button(pygame.sprite.Sprite):
 
 		self.SFX['click'].play()
 
-		match self.press_state:
+		if self.press_state == self.game.STATES['play']: 
+			self.game.restart()
 
-			case 'play': 
-				self.game.restart()
+		elif self.press_state == 'unpause': 
+			self.game.paused = False
 
-			case 'unpause': 
-				self.game.paused = False
+		elif self.press_state == 'next-costume': 
 
-			case 'next-costume': 
+			self.game.player.sprite.image_index = (self.game.player.sprite.image_index + 1) % len(self.game.player.sprite.images)
 
-				self.game.player.sprite.image_index = (self.game.player.sprite.image_index + 1) % len(self.game.player.sprite.images)
+		elif self.press_state == 'last-costume':
 
-			case 'last-costume':
+			if self.game.player.sprite.image_index <= 0: self.game.player.sprite.image_index = len(self.game.player.sprite.images)
+			self.game.player.sprite.image_index -= 1
 
-				if self.game.player.sprite.image_index <= 0: self.game.player.sprite.image_index = len(self.game.player.sprite.images)
-				self.game.player.sprite.image_index -= 1
-
-			case _: 
-				self.game.state = self.press_state
+		else: 
+			self.game.state = self.press_state
 
 		self.reset()
 
@@ -732,7 +776,7 @@ class Button(pygame.sprite.Sprite):
 		if self.animation_type == 'slide': self.state = 0
 		if self.animation_type == 'float': self.scale = 1
 
-class Intro_Sprite(pygame.sprite.Sprite):
+class IntroSprite(pygame.sprite.Sprite):
 
 	def __init__(self, type: str, pos: tuple, game: Game) -> None:
 
@@ -785,7 +829,7 @@ class Intro_Sprite(pygame.sprite.Sprite):
 			self.frame_index = 0
 			self.image = self.frames[self.frame_index]
 
-class Menu_Background(pygame.sprite.Sprite):
+class MenuBackground(pygame.sprite.Sprite):
 
 	def __init__(self, pos: tuple, offset: int) -> None:
 
@@ -815,7 +859,7 @@ def main() -> None:
 
 	start_time = time()
 
-	game = Game()
+	game = Game(user_data = USER_DATA)
 	text = game.text
 	player = game.player
 	forks = game.forks
@@ -826,7 +870,7 @@ def main() -> None:
 	game_over_sprites = game.game_over_sprites
 	pause_sprites = game.pause_sprites
 
-	logger.info(f'\ngame initialised in {round(time() - start_time, 3)}s')
+	logger.info(f'game initialised in {round(time() - start_time, 3)}s')
 	pygame.display.set_caption('Flappy Taco')
 	previous_time = time()
 
@@ -840,107 +884,96 @@ def main() -> None:
 			match event.type:
 
 				case pygame.QUIT:
+
+					logger.info('pygame.QUIT event detected')
 					game.quit()
 
 				case pygame.MOUSEBUTTONDOWN:
 
-					match game.state:
+					logger.info('[LEFT MOUSE BUTTON] pressed')
 
-						case 'controls': 
-							game.state = 'menu'
-						case 'play': 
-							if not game.started: game.started = True
+					if game.state == game.STATES['help']: 
+						game.state = game.STATES['menu']
+
+					elif game.state == game.STATES['play'] and not game.started: 
+						game.start()
 
 				case pygame.KEYDOWN:
 
 					if event.key == pygame.K_ESCAPE:
 
-						match game.state:
+						logger.info('[ESC] pressed')
 							
-							case 'play': 
+						if game.state == game.STATES['play']: 
 
-								if game.started and not game.paused: game.paused = True
-								elif game.paused: game.paused = False
+							if game.started and not game.paused: 
+								game.paused = True
+
+							elif game.paused: 
+								game.paused = False
 							
-							case 'over':
-								game.state = 'menu'
+						elif game.state == game.STATES['over']:
+							game.state = game.STATES['menu']
 
-							case 'menu':
-								game.quit()
+						elif game.state == game.STATES['menu']:
+							game.quit()
 
-				case game.fork_timer:
+				case game.FORK_TIMER:
 
-					if game.state == 'play' and game.started and not game.paused:
+					if game.state == game.STATES['play'] and game.started and not game.paused:
 						
 						y_offset = randint(int(HEIGHT / 3), int(HEIGHT - HEIGHT / 3))
 
 						forks.add(
-							Fork(orientation = 'up', speed = game.fork_speed, offset = y_offset, game = game), 
-							Fork(orientation = 'down', speed = game.fork_speed, offset = y_offset, game = game)
+							Fork(orientation = 'up', speed = game._FORK_SPEED, offset = y_offset, game = game), 
+							Fork(orientation = 'down', speed = game._FORK_SPEED, offset = y_offset, game = game)
 						)
 
 						if randint(0, game.CHILLI_FREQUENCY) == 0: 
-							chillies.add(Chilli(speed = game.fork_speed, y_offset = y_offset, game = game))
+							chillies.add(Chilli(speed = game._FORK_SPEED, y_offset = y_offset, game = game))
 
 		# Background
 		screen.fill(COLOURS['black'])
 		background.draw(screen)
 
-		match game.state:
+		if game.state == game.STATES['menu']:
 
-			case 'menu':
+			# Intro Sprites
+			menu_sprites.update(dt)
+			menu_sprites.draw(screen)
 
-				# Intro Sprites
-				menu_sprites.update(dt)
-				menu_sprites.draw(screen)
+		elif game.state == game.STATES['choose_taco']:
 
-			case 'choose-taco':
+			# Choose Taco Sprites
+			choose_taco_sprites.update(dt)
+			choose_taco_sprites.draw(screen)
 
-				# Choose Taco Sprites
-				choose_taco_sprites.update(dt)
-				choose_taco_sprites.draw(screen)
+			# Player
+			player.sprite.costume_display()
+			player.draw(screen)
 
-				# Player
-				player.sprite.costume_display()
-				player.draw(screen)
+		elif game.state == game.STATES['play']:
 
-			case 'play':
+			if game.started:
+			
+				if not game.paused:
 
-				if game.started:
+					# Background
+					background.update(dt)
+
+					# Forks
+					forks.update(dt)
+					forks.draw(screen)
+
+					# Chillies
+					chillies.update(dt)
+					chillies.draw(screen)
+
+					# Player
+					player.draw(screen)
+					player.update(dt)
 				
-					if not game.paused:
-
-						# Background
-						background.update(dt)
-
-						# Forks
-						forks.update(dt)
-						forks.draw(screen)
-
-						# Chillies
-						chillies.update(dt)
-						chillies.draw(screen)
-
-						# Player
-						player.draw(screen)
-						player.update(dt)
-					
-					elif game.paused:
-
-						# Player
-						player.draw(screen)
-
-						# Forks
-						forks.draw(screen)
-
-						# Chillies
-						chillies.draw(screen)
-
-						# Pause Sprites
-						pause_sprites.update(dt)
-						pause_sprites.draw(screen)
-				
-				elif not game.started:
+				elif game.paused:
 
 					# Player
 					player.draw(screen)
@@ -951,7 +984,22 @@ def main() -> None:
 					# Chillies
 					chillies.draw(screen)
 
-			case 'over':
+					# Pause Sprites
+					pause_sprites.update(dt)
+					pause_sprites.draw(screen)
+			
+			elif not game.started:
+
+				# Player
+				player.draw(screen)
+
+				# Forks
+				forks.draw(screen)
+
+				# Chillies
+				chillies.draw(screen)
+
+		elif game.state == game.STATES['over']:
 
 				# Player
 				player.draw(screen)
