@@ -7,7 +7,7 @@ from typing import TypedDict, Literal
 from assets import EXE, WORKING_DIR, SAVE_DIR, CONFIG_PATH, USER_DATA_PATH
 import logs
 
-logger = logs.get_logger(name = 'assets.py') # get logger
+logger = logs.get_logger(file = __file__) # get logger
 
 # Config Dictionary type annotation
 class ScreenSetupDict(TypedDict):
@@ -140,11 +140,49 @@ class FileHandler:
 
 			for key, value in config.items():
 
-				match key:
+				if key == 'screen_setup':
 
-					case 'screen_setup':
+					for key2, value2 in config['screen_setup'].items():
 
-						for key, value in config[key].items(): pass
+						if key2 == 'width':
+							if isinstance(value2, int): 
+								config['screen_setup']['width'] = int(value2)
+							else:
+								raise ValueError(f'invalid config value "{value2}" for key "{key2}" of config file; must be type {type(config['screen_setup']['width'])}')
+						
+						elif key2 == 'height':
+							if isinstance(value2, int): 
+								config['screen_setup']['height'] = int(value2)
+							else:
+								raise ValueError(f'invalid config value "{value2}" for key "{key2}" of config file; must be type {type(config['screen_setup']['height'])}')
+						
+						elif key2 == 'FPS':
+							if isinstance(value2, int) and -1 <= value2: 
+								config['screen_setup']['FPS'] = value2
+							else:
+								raise ValueError(f'invalid config value "{value2}" for key "{key2}" of config file; must be type {type(config['screen_setup']['FPS'])}; must be greater than -1')
+						
+						elif key2 == 'VSYNC':
+							if isinstance(value2, int) and value2 in (0, 1): 
+								config['screen_setup']['FPS'] = value2
+							else:
+								raise ValueError(f'invalid config value "{value2}" for key "{key2}" of config file; must be type {type(config['screen_setup']['VSYNC'])}; must be either 0 or 1')
+
+				if key == 'audio_volume':
+
+					for key2, value2 in config['audio_volume'].items():
+
+						if key2 == 'music':
+							if isinstance(value2, int | float) and 0 <= value2 <= 1: 
+								config['audio_volume']['music'] = float(value2)
+							else:
+								raise ValueError(f'invalid config value "{value2}" for key "{key2}" of config file; must be type {type(config['audio_volume']['music'])}; must be between 0 and 1')
+						
+						elif key2 == 'sfx':
+							if isinstance(value2, int | float) and 0 <= value2 <= 1: 
+								config['audio_volume']['sfx'] = float(value2)
+							else:
+								raise ValueError(f'invalid config value "{value2}" for key "{key2}" of config file; must be type {type(config['audio_volume']['sfx'])}; must be between 0 and 1')
 
 		else:
 
@@ -298,10 +336,10 @@ class FileHandler:
 						raise ValueError(f'invalid config value "{value}" for key "{key}" of config file {path}; must be type {type(old_config[key])}')
 
 				case 'FPS': 
-					if value.isdecimal(): 
+					if value.isdecimal() and -1 <= int(value): 
 						old_config['FPS'] = int(value)
 					else: 
-						raise ValueError(f'invalid config value "{value}" for key "{key}" of config file {path}; must be type {type(old_config[key])}')
+						raise ValueError(f'invalid config value "{value}" for key "{key}" of config file {path}; must be type {type(old_config[key])}: must be larger than -1')
 
 				case 'VSYNC': 
 					if value.isdecimal() and value in (0, 1): 
@@ -401,3 +439,5 @@ def init() -> tuple[FileHandler, ConstantsDict, UserDataDict]:
 	}
 
 	return file_handler, constants, user_data
+
+if __name__ == '__main__': init()

@@ -16,7 +16,7 @@ import file_config
 # 5. main.py   		-> run game
 
 # logging
-logger = logs.get_logger(name = 'main.py') # get logger
+logger = logs.get_logger(file = __file__) # get logger
 logger.info('initialising program...')
 
 # updates

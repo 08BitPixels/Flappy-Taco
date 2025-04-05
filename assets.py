@@ -3,26 +3,24 @@ import sys
 import ctypes
 
 # runtime info
-EXE = getattr(sys, '_MEIPASS', False) # is program being run from exe
+EXE = bool(getattr(sys, '_MEIPASS', False)) # is program being run from exe
 
 # version info
 CURRENT_VERSION = 'v1.2.0'
 API_URL = 'https://api.github.com/repos/08BitPixels/Flappy-Taco/releases/latest'
 
 # environment paths
-WORKING_DIR = os.path.dirname(os.path.abspath(__file__)) # exe: _internal
+WORKING_DIR = os.path.dirname(__file__) # exe: _internal
 FILE_NAMES = {
 	'config': 'config.toml',
 	'user_data': 'user_data.toml',
 }
-
-if EXE:
-	CONFIG_PATH = os.path.join(WORKING_DIR, '..', FILE_NAMES['config'])
-	USER_DATA_PATH = os.path.join(WORKING_DIR, FILE_NAMES['user_data'])
-else:
-	SAVE_DIR = os.path.join(WORKING_DIR, 'save_data\\')
-	CONFIG_PATH = os.path.join(WORKING_DIR, SAVE_DIR, FILE_NAMES['config'])
-	USER_DATA_PATH = os.path.join(WORKING_DIR, SAVE_DIR, FILE_NAMES['user_data'])
+# save data
+SAVE_DIR = '' if EXE else os.path.join(WORKING_DIR, 'save_data\\')
+CONFIG_PATH = os.path.join(WORKING_DIR, '..' if EXE else SAVE_DIR, FILE_NAMES['config'])
+USER_DATA_PATH = os.path.join(WORKING_DIR, '' if EXE else SAVE_DIR, FILE_NAMES['user_data'])
+# logs
+LOGS_DIR = os.path.join(WORKING_DIR, '..' if EXE else '', 'logs\\')
 
 def save_path(relative_path: str) -> str:
 	return os.path.join(WORKING_DIR, relative_path)
