@@ -136,14 +136,14 @@ class FileHandler:
 					'''
 				)
 
-				print('\nSaving Config...')
+				logger.info('saving config...')
 
 				text = toml.dumps(data) + comments
 				path = CONFIG_PATH
 
 			case 1:
 
-				print('\nSaving User Data...')
+				logger.info('saving user data...')
 
 				text = toml.dumps(data)
 				path = USER_DATA_PATH
@@ -152,11 +152,11 @@ class FileHandler:
 		file.write(text)
 		file.close()
 
-		print('Saved')
+		logger.info('Saved')
 
 	def load_config(self) -> ConfigDict:
 
-		print('\nloading config...')
+		logger.info('loading config...')
 		config: ConfigDict = self._DEFAULT_CONFIG
 
 		if os.path.isfile(CONFIG_PATH):
@@ -182,15 +182,15 @@ class FileHandler:
 
 		else:
 
-			print('\nNo config file present; creating new one...')
+			logger.info('no config file present; creating new one...')
 			self.save_data(mode = 0, data = config)
 		
-		print('config loaded')
+		logger.info('config loaded')
 		return config
 
 	def load_user_data(self) -> UserDataDict:
 
-		print('\nloading user data...')
+		logger.info('loading user data...')
 		user_data: UserDataDict = {'high_score': 0, 'costume_index': 0}
 
 		if os.path.isfile(USER_DATA_PATH):
@@ -209,10 +209,10 @@ class FileHandler:
 
 		else:
 
-			print('No user data file present; creating new one...')
+			logger.info('no user data file present; creating new one...')
 			self.save_data(mode = 1, data = user_data)
 
-		print('user data loaded')
+		logger.info('user data loaded')
 		return user_data
 
 	def _remove_dir(self, path: str) -> None:
@@ -237,17 +237,16 @@ class FileHandler:
 
 	def _clear_dir(self, path: str, to_remove: list[str] = []) -> list[str]:
 
-		print(f'\nchecking: {path}')
+		logger.info(f'checking: "{path}" for old game dirs')
 
 		if os.path.isdir(path):
 
-			print('| dir exists')
+			logger.info('dir exists')
 			dir_contents = os.listdir(path)
 
 			if dir_contents:
 
-				print('| dir is not empty; contents:')
-				print(f'| {dir_contents}')
+				logger.info(f'dir is not empty; contents: {dir_contents}')
 
 				if 'Flappy Taco' in dir_contents or 'saves' in dir_contents:
 
@@ -271,22 +270,22 @@ class FileHandler:
 						os.remove(os.path.join(path, 'saves.txt'))
 					
 				else:
-					print('dir does not contain old Flappy Taco directories; skipping...')
+					logger.info('dir does not contain old game dirs; skipping...')
 
 			else:
 
-				print('| dir is empty; removing...')
+				logger.info('dir is empty; removing...')
 				to_remove.append(path)
 
 		else:
 
-			print('| dir does not exist; skipping')
+			logger.info('dir does not exist; skipping')
 
 		return to_remove
 	
 	def _load_old_config(self, path: str) -> ConfigDict:
 
-		print('\nold config file detected; upgrading to new format...')
+		logger.info('old config file detected; upgrading to new format...')
 
 		old_config: OldConfigDict = {
 			'SCREEN_WIDTH': 0,
@@ -364,7 +363,7 @@ class FileHandler:
 
 	def _load_old_user_data(self, path: str) -> UserDataDict:
 
-		print('\nold user data file detected; upgrading to new format...')
+		logger.info('old user data file detected; upgrading to new format...')
 		user_data: UserDataDict = {'high_score': 0, 'costume_index': 0}
 
 		file = open(path, 'r')

@@ -22,7 +22,7 @@ FILE_HANDLER = logging.FileHandler(filename = FILE_PATH)
 FILE_HANDLER.setFormatter(FORMATTER)
 
 # uncaught exception handling
-def exception(exc_type, exc_value, exc_traceback):
+def exception(exc_type, exc_value, exc_traceback) -> None:
 	
 	sys.__excepthook__(exc_type, exc_value, exc_traceback)
 	logging.critical('\n\n', exc_info = (exc_type, exc_value, exc_traceback))

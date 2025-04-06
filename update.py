@@ -1,16 +1,18 @@
-import ctypes
 import requests
 import shutil
 import zipfile
 import os
-import subprocess
 
 from textwrap import dedent
 
+import logs
 from assets import CURRENT_VERSION, API_URL, popup_window
 
-def check_update() -> tuple[bool, str]: # -> update available, latest version
+logger = logs.get_logger(file = __file__)
 
+def check_update() -> tuple[bool, str, dict]: # -> update available, latest version, dict (containing download info) - if any
+
+	logger.info('checking for updates...')
 	response = requests.get(API_URL)
 
 	if response.status_code == 200:
@@ -19,77 +21,84 @@ def check_update() -> tuple[bool, str]: # -> update available, latest version
 		latest_version = release_data['tag_name']
 
 		if latest_version and latest_version != CURRENT_VERSION: 
-			return True, latest_version
+			logger.info('new update available')
+			return True, latest_version, release_data
+		
 		else: 
-			print('No Update Available')
-			return False, ''
+			logger.info('no update available')
+			return False, '', {}
 
 	else:
 		
-		print(f'Error: {response.status_code}')
-		return False, ''
+		logger.error(f'error fetching update info: {response.status_code}')
+		popup_window(
+			title = 'Error',
+			description = f'There was an unexpected error fetching update info;\nerror code: {response.status_code}',
+			perams = 0 | 0x30
+		)
+		return False, '', {}
 
-def update(latest_version: str) -> None:
+def update(latest_version: str, data: dict) -> None:
 
 	zip_path = f'download_temp/FlappyTaco_{latest_version}.zip'
-	dest_path = f'../Flappy Taco {latest_version}'
+	dest_path = '../FlappyTaco'
 
-	def download(response: requests.Response) -> None:
+	def download() -> None:
 
-		release_data = response.json()
-
-		for asset in release_data.get('assets', []):
-			if asset.get('browser_download_url'):
-				download_url = asset['browser_download_url']
-				break
+		assets = data.get('assets', [])[0]
+		download_url = assets.get('browser_download_url', '')
 		
 		if not download_url: 
-			ctypes.windll.user32.MessageBoxW(0, 'No latest version to download', 'Error', 0)
+
+			popup_window(
+				title = 'Error',
+				description = 'no .zip file found for new version - this is an error on the developer\'s side, please flag this with them on the github page: \nhttps://github.com/08BitPixels/Flappy-Taco/issues',
+				perams = 0 | 0x30
+			) 
 			return
 
 		response = requests.get(download_url, stream = True)
 		os.makedirs('download_temp')
 
-		with open(zip_path, 'wb') as zip_file:
-			shutil.copyfileobj(response.raw, zip_file)
+		zip_file = open(zip_path, 'wb')
+		shutil.copyfileobj(response.raw, zip_file)
+		zip_file.close()
 
-		print(f'Successfully Downloaded: Flappy Taco {latest_version} -> {zip_path}')
+		logger.info(f'successfully downloaded: Flappy Taco {latest_version} -> "{zip_path}"')
 
 	def install() -> None:
 
-		with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-			zip_ref.extractall(dest_path)
+		zip_file = zipfile.ZipFile(zip_path, 'r')
+		zip_file.extractall(dest_path)
+		zip_file.close()
 
-		print(f'Successfully Extracted {zip_path} -> {dest_path}')
+		logger.info(f'successfully extracted "{zip_path}" -> "{dest_path}"')
 
 		shutil.rmtree('download_temp')
-		print(f'- Deleted {zip_path}')
+		logger.info(f'deleted "{zip_path}"')
 
-	print(f'Downloading: Flappy Taco {latest_version} ...')
+	logger.info(f'downloading: Flappy Taco {latest_version} ...')
 
-	response = requests.get(API_URL)
+	download()
+	install()
 
-	if response.status_code == 200:
-
-		download(response)
-		install()
-
-		exe_path = f'{dest_path}/FlappyTaco.exe'
-		subprocess.run([exe_path], shell = True)
-
-		# current_dir = os.path.dirname(__file__)
-
-		#shutil.rmtree(current_dir)
-
-	else:
-		
-		ctypes.windll.user32.MessageBoxW(0, f'Error during request fetch: {response.status_code}', 'Error', 0)
+	logger.info(f'successfully installed Flappy Taco {latest_version}')
+	popup_window(
+		title = 'Complete',
+		description = dedent(
+			f'''
+			Download + Installation of Flappy Taco {latest_version} completed successfully.
+			Please restart the game to run the updated version.
+			'''
+		),
+		perams = 0 | 0x40
+	)
 
 def init() -> None:
 
-	update_available, latest_version = check_update()
+	update_available, latest_version, data = check_update()
 
-	if update_available:
+	if update_available and data:
 
 		description = dedent(
 			f'''
@@ -99,6 +108,11 @@ def init() -> None:
 		)
 		response = popup_window(title = 'Update Available', description = description, perams = 4 | 0x40)
 		to_update = not (response - 6)
-		if to_update: update(latest_version)
+
+		if to_update: 
+			logger.info('update requested')
+			update(latest_version, data)
+		else:
+			logger.info('update declined')
 
 if __name__ == '__main__': init()
