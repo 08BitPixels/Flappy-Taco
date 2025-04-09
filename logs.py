@@ -2,6 +2,7 @@ import logging
 import datetime
 import os
 import sys
+import shutil
 from assets import save_path, EXE, LOGS_DIR
 
 LOG_FORMAT = '[%(asctime)s.%(msecs)05d] [%(name)s] [%(levelname)s]: %(message)s'
@@ -48,3 +49,24 @@ def get_logger(file: str) -> logging.Logger:
 	logger.info(f'logger "{file_name}" initialised')
 
 	return logger
+
+def delete_old_logs(logger: logging.Logger) -> None:
+
+	logger.info('deleting old log directories...')
+	dir_contents = os.listdir(LOGS_DIR)
+	old_dirs = [dir for dir in dir_contents if dir != os.path.basename(TODAY_DIR)]
+
+	if not old_dirs:
+		logger.info('no old log directories found')
+
+	for dir in old_dirs:
+
+		path = save_path(os.path.join('..' if EXE else '', LOGS_DIR, dir))
+
+		try:
+			os.chmod(path, 0o777)
+			shutil.rmtree(path = path)
+			logger.info(f'successfully removed {dir}\'s logs ("{path}")')
+
+		except PermissionError:
+			logger.error(f'permission denied whilst trying to remove {dir}\'s logs ("{path}")')

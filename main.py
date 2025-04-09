@@ -223,6 +223,8 @@ class Game:
 
 		if to_quit:
 
+			logger.info('quit confirmed, quitting game...')
+			
 			config: file_config.ConfigDict = {
 				'screen_setup': {
 					'width': WIDTH,
@@ -233,17 +235,16 @@ class Game:
 				'audio_volume': {
 					'music': VOLUMES['music'],
 					'sfx': VOLUMES['sfx']
-				}
+				},
+				'del_old_logs': file_handler.del_old_logs
 			}
 			user_data: file_config.UserDataDict = {
 				'high_score': self.high_score, 
-				'costume_index': (0, 1, 2, 3, 4, 5, 6, 7)[self.player.sprite.image_index]
+				'costume_index': (0, 1, 2, 3, 4, 5, 6)[self.player.sprite.image_index]
 			}
 
 			file_handler.save_data(mode = 0, data = config)
 			file_handler.save_data(mode = 1, data = user_data)
-
-			logger.info('quit confirmed, quitting game...')
 
 			pygame.quit()
 			exit()

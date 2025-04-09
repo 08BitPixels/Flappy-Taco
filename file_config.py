@@ -21,9 +21,9 @@ def validate_typeddict(data: dict, typed_dict: type, ranges: dict = {}) -> None:
 		else:
 
 			if key not in data:
-				raise KeyError(f'Missing key for type {typed_dict}: {key}')
+				raise KeyError(f'missing key for config file: {key}')
 			
-			if expected_type is Literal[0, 1] or expected_type is Literal[0, 1, 2, 3, 4, 5, 6, 7]:
+			if expected_type is Literal[0, 1] or expected_type is Literal[0, 1, 2, 3, 4, 5, 6]:
 				expected_type = int
 			
 			if expected_type is float:
@@ -44,7 +44,7 @@ class ScreenSetupDict(TypedDict):
 	width: int
 	height: int
 	FPS: int
-	VSYNC: Literal[0, 1]
+	VSYNC: bool
 
 class VolumeDict(TypedDict):
 
@@ -65,6 +65,7 @@ class ConfigDict(TypedDict):
 
 	screen_setup: ScreenSetupDict
 	audio_volume: VolumeDict
+	del_old_logs: bool
 
 class OldConfigDict(TypedDict):
 
@@ -78,14 +79,14 @@ class OldConfigDict(TypedDict):
 class UserDataDict(TypedDict):
 
 	high_score: int
-	costume_index: Literal[0, 1, 2, 3, 4, 5, 6, 7]
+	costume_index: Literal[0, 1, 2, 3, 4, 5, 6]
 
 class ConstantsDict(TypedDict):
 
 	screen_dimensions: tuple[int, int]
 	centre_coords: tuple[int, int]
 	FPS: int
-	VSYNC: Literal[0, 1]
+	VSYNC: bool
 	volumes: VolumeDict
 	colours: ColoursDict
 
@@ -99,13 +100,15 @@ class FileHandler:
 				'width': 1000,
 				'height': 750,
 				'FPS': 60,
-				'VSYNC': 0
+				'VSYNC': False
 			},
 			'audio_volume': {
 				'music': 1.0,
 				'sfx': 1.0
-			}
+			},
+			'del_old_logs': True
 		}
+		self.del_old_logs = self._DEFAULT_CONFIG['del_old_logs']
 
 		if not EXE and not os.path.isdir(SAVE_DIR): os.makedirs(SAVE_DIR)
 		check_path = os.path.join(os.getenv('APPDATA', ''), '08BitPixels\\')
@@ -122,10 +125,12 @@ class FileHandler:
 					'''
 					# [CONFIG EXPLAINED]
 
+					# del_old_logs: [false] = off, [true] = on; when activated, any old log files from previous day will be deleted.
+
 					# [screen setup]
 					# width & height: integers; the dimensions of the game window in pixels
 					# FPS: integer (-1 = uncapped)
-					# VSYNC: 0 = off, 1 = on; syncs refresh rate to that of the monitor (can help to reduce screen tearing) - when this is set to 1 (on) FPS value is ignored. 
+					# VSYNC: [false] = off, [true] = on; syncs refresh rate to that of the monitor (can help to reduce screen tearing) - when this is set to [true] (on) FPS value is ignored. 
 					# | EXPERIMENTAL FEATURE - due to the specific requirements of VSync, it may not work; you are not garanteed to get a VSync display on your specific setup.
 					# | Due to this, it is reccomended that you set the FPS value to the refresh rate of your monitor anyways.
 					# | You will know if VSync has not worked if your FPS seems to be uncapped, even though you have set VSync to be on - in this case, just disable VSync and use the FPS value as normal.
@@ -185,7 +190,12 @@ class FileHandler:
 			logger.info('no config file present; creating new one...')
 			self.save_data(mode = 0, data = config)
 		
+		self.del_old_logs = config['del_old_logs']
 		logger.info('config loaded')
+
+		if self.del_old_logs:
+			logs.delete_old_logs(logger = logger)
+
 		return config
 
 	def load_user_data(self) -> UserDataDict:
@@ -351,12 +361,13 @@ class FileHandler:
 				'width': old_config['SCREEN_WIDTH'],
 				'height': old_config['SCREEN_HEIGHT'],
 				'FPS': old_config['FPS'],
-				'VSYNC': old_config['VSYNC']
+				'VSYNC': bool(old_config['VSYNC'])
 			},
 			'audio_volume': {
 				'music': old_config['MUSIC_VOL'],
 				'sfx': old_config['SFX_VOL']
-			}
+			},
+			'del_old_logs': True
 		}
 		
 		return config
@@ -378,10 +389,10 @@ class FileHandler:
 		else: 
 			raise ValueError(f'key "high_score" of user data file file "{path}" must be type: {type(user_data['high_score'])}')
 		
-		if costume_index.isdigit() and int(costume_index) in (0, 1, 2, 3, 4, 5, 6, 7): 
-			user_data['costume_index'] = (0, 1, 2, 3, 4, 5, 6, 7)[int(costume_index)]
+		if costume_index.isdigit() and int(costume_index) in (0, 1, 2, 3, 4, 5, 6): 
+			user_data['costume_index'] = (0, 1, 2, 3, 4, 5, 6)[int(costume_index)]
 		else: 
-			raise ValueError(f'key "high_score" of user data file file "{path}" must be type: {type(user_data['high_score'])}')
+			raise ValueError(f'key "high_score" of user data file file "{path}" must be type: {type(user_data['high_score'])} and between 0-6')
 
 		return user_data
 
